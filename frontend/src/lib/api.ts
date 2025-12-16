@@ -51,6 +51,29 @@ export interface Route {
   utilization: number;
 }
 
+export interface CostSettings {
+  cost_per_mile: number;
+  cost_per_hour: number;
+}
+
+export interface CostSummary {
+  distance_cost: number;
+  time_cost: number;
+  total_cost: number;
+}
+
+export interface SavingsSummary {
+  naive_distance: number;
+  naive_time: number;
+  optimized_distance: number;
+  optimized_time: number;
+  distance_saved: number;
+  time_saved: number;
+  distance_saved_percent: number;
+  time_saved_percent: number;
+  money_saved?: number;
+}
+
 export interface OptimizationResult {
   success: boolean;
   message: string;
@@ -59,6 +82,8 @@ export interface OptimizationResult {
   total_distance: number;
   total_time: number;
   computation_time: number;
+  cost_summary?: CostSummary;
+  savings_summary?: SavingsSummary;
 }
 
 export interface UploadResponse {
@@ -74,6 +99,7 @@ export interface OptimizationRequest {
   vehicles: Vehicle[];
   objective?: 'minimize_distance' | 'minimize_time' | 'balance_routes';
   max_computation_time?: number;
+  cost_settings?: CostSettings;
 }
 
 export interface SampleData {
@@ -130,4 +156,21 @@ export async function getSampleData(): Promise<SampleData> {
     throw new Error('Failed to fetch sample data');
   }
   return response.json();
+}
+
+export async function exportRoutePDF(routes: Route[], depot: Depot, costSettings?: CostSettings): Promise<Blob> {
+  const response = await fetch(`${API_BASE}/export/pdf`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ routes, depot, cost_settings: costSettings }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'PDF export failed');
+  }
+
+  return response.blob();
 }

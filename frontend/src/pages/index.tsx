@@ -12,6 +12,7 @@ import {
   type Depot,
   type Vehicle,
   type OptimizationResult,
+  type CostSettings,
 } from '@/lib/api';
 
 // Dynamic import for MapView to avoid SSR issues with Leaflet
@@ -32,6 +33,7 @@ export default function Home() {
     { id: 'vehicle_2', name: 'Vehicle 2', capacity: 100, start_time: '08:00', end_time: '18:00' },
   ]);
   const [objective, setObjective] = useState<'minimize_distance' | 'minimize_time' | 'balance_routes'>('minimize_distance');
+  const [costSettings, setCostSettings] = useState<CostSettings>({ cost_per_mile: 0.585, cost_per_hour: 25.0 });
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
@@ -71,6 +73,7 @@ export default function Home() {
         deliveries,
         vehicles,
         objective,
+        cost_settings: costSettings,
       });
       setResult(response);
       setSelectedRouteIndex(undefined);
@@ -79,7 +82,7 @@ export default function Home() {
     } finally {
       setIsOptimizing(false);
     }
-  }, [depot, deliveries, vehicles, objective]);
+  }, [depot, deliveries, vehicles, objective, costSettings]);
 
   const handleLoadSample = useCallback(async () => {
     setIsLoading(true);
@@ -187,9 +190,11 @@ export default function Home() {
               depot={depot}
               vehicles={vehicles}
               objective={objective}
+              costSettings={costSettings}
               onDepotChange={setDepot}
               onVehiclesChange={setVehicles}
               onObjectiveChange={setObjective}
+              onCostSettingsChange={setCostSettings}
               onOptimize={handleOptimize}
               isOptimizing={isOptimizing}
               hasDeliveries={deliveries.length > 0}
@@ -222,6 +227,8 @@ export default function Home() {
               result={result}
               selectedRouteIndex={selectedRouteIndex}
               onRouteSelect={setSelectedRouteIndex}
+              depot={depot}
+              costSettings={costSettings}
             />
           </div>
         </div>

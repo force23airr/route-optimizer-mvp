@@ -1,0 +1,13 @@
+id,name,latitude,longitude,address,demand,time_window_start,time_window_end,service_time
+d1,Miracle Mile Shop,25.7498,-80.2589,358 Miracle Mile,8,09:00,12:00,5
+d2,Coral Gables City Hall,25.7496,-80.2624,405 Biltmore Way,12,09:00,17:00,10
+d3,Venetian Pool Area,25.7514,-80.2731,2701 De Soto Blvd,6,10:00,14:00,5
+d4,Biltmore Hotel,25.7429,-80.2757,1200 Anastasia Ave,15,08:00,18:00,10
+d5,University of Miami,25.7215,-80.2794,1320 S Dixie Hwy,20,09:00,16:00,15
+d6,Merrick Park Mall,25.7401,-80.2619,358 San Lorenzo Ave,10,10:00,20:00,5
+d7,Coral Gables Library,25.7489,-80.2618,3443 Segovia St,5,09:00,17:00,5
+d8,Fairchild Garden,25.6768,-80.2742,10901 Old Cutler Rd,8,09:30,16:30,10
+d9,Riviera Country Club,25.7318,-80.2695,1155 Blue Rd,7,08:00,18:00,5
+d10,Douglas Entrance,25.7563,-80.2536,800 Douglas Rd,9,09:00,15:00,5
+d11,Coral Way Restaurant,25.7509,-80.2485,2500 Coral Way,6,11:00,22:00,5
+d12,Granada Golf Course,25.7580,-80.2782,2001 Granada Blvd,11,07:00,17:00,10

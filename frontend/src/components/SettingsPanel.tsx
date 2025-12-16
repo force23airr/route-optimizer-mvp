@@ -1,12 +1,14 @@
-import type { Depot, Vehicle } from '@/lib/api';
+import type { Depot, Vehicle, CostSettings } from '@/lib/api';
 
 interface SettingsPanelProps {
   depot: Depot;
   vehicles: Vehicle[];
   objective: 'minimize_distance' | 'minimize_time' | 'balance_routes';
+  costSettings: CostSettings;
   onDepotChange: (depot: Depot) => void;
   onVehiclesChange: (vehicles: Vehicle[]) => void;
   onObjectiveChange: (objective: 'minimize_distance' | 'minimize_time' | 'balance_routes') => void;
+  onCostSettingsChange: (costSettings: CostSettings) => void;
   onOptimize: () => void;
   isOptimizing: boolean;
   hasDeliveries: boolean;
@@ -16,9 +18,11 @@ export default function SettingsPanel({
   depot,
   vehicles,
   objective,
+  costSettings,
   onDepotChange,
   onVehiclesChange,
   onObjectiveChange,
+  onCostSettingsChange,
   onOptimize,
   isOptimizing,
   hasDeliveries,
@@ -106,6 +110,53 @@ export default function SettingsPanel({
           <option value="minimize_time">Minimize Total Time</option>
           <option value="balance_routes">Balance Routes Evenly</option>
         </select>
+      </section>
+
+      {/* Cost Settings */}
+      <section style={{ marginBottom: '24px' }}>
+        <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>Cost Calculator</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+              $ per Mile
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={costSettings.cost_per_mile}
+              onChange={(e) =>
+                onCostSettingsChange({ ...costSettings, cost_per_mile: parseFloat(e.target.value) || 0 })
+              }
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+              $ per Hour
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={costSettings.cost_per_hour}
+              onChange={(e) =>
+                onCostSettingsChange({ ...costSettings, cost_per_hour: parseFloat(e.target.value) || 0 })
+              }
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+              }}
+            />
+          </div>
+        </div>
       </section>
 
       {/* Vehicles */}

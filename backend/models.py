@@ -40,12 +40,18 @@ class OptimizationObjective(str, Enum):
     BALANCE_ROUTES = "balance_routes"
 
 
+class CostSettings(BaseModel):
+    cost_per_mile: float = Field(default=0.585, ge=0, description="Cost per mile in dollars")
+    cost_per_hour: float = Field(default=25.0, ge=0, description="Cost per hour in dollars")
+
+
 class OptimizationRequest(BaseModel):
     depot: Depot
     deliveries: list[Delivery]
     vehicles: list[Vehicle]
     objective: OptimizationObjective = OptimizationObjective.MINIMIZE_DISTANCE
     max_computation_time: int = Field(default=30, ge=1, le=300, description="Seconds")
+    cost_settings: Optional[CostSettings] = None
 
 
 class RouteStop(BaseModel):
@@ -68,6 +74,24 @@ class Route(BaseModel):
     utilization: float  # percentage of capacity used
 
 
+class CostSummary(BaseModel):
+    distance_cost: float
+    time_cost: float
+    total_cost: float
+
+
+class SavingsSummary(BaseModel):
+    naive_distance: float
+    naive_time: int
+    optimized_distance: float
+    optimized_time: int
+    distance_saved: float
+    time_saved: int
+    distance_saved_percent: float
+    time_saved_percent: float
+    money_saved: Optional[float] = None
+
+
 class OptimizationResult(BaseModel):
     success: bool
     message: str
@@ -76,6 +100,8 @@ class OptimizationResult(BaseModel):
     total_distance: float
     total_time: int
     computation_time: float  # seconds
+    cost_summary: Optional[CostSummary] = None
+    savings_summary: Optional[SavingsSummary] = None
 
 
 class UploadResponse(BaseModel):

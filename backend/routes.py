@@ -6,6 +6,8 @@ import csv
 import io
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from models import (
     Delivery,
     Depot,
@@ -15,6 +17,8 @@ from models import (
     UploadResponse,
     HealthResponse,
     OptimizationObjective,
+    Route,
+    CostSettings,
 )
 from cuopt_service import get_cuopt_service, MockCuOptService
 
@@ -210,3 +214,123 @@ async def get_sample_data():
         "deliveries": sample_deliveries,
         "vehicles": sample_vehicles
     }
+
+
+class PDFExportRequest(BaseModel):
+    routes: list[Route]
+    depot: Depot
+    cost_settings: Optional[CostSettings] = None
+
+
+@router.post("/export/pdf")
+async def export_routes_pdf(request: PDFExportRequest):
+    """
+    Export optimized routes as a PDF document with driver route sheets.
+    Each route gets its own page with turn-by-turn stop list.
+    """
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    styles = getSampleStyleSheet()
+
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=18,
+        spaceAfter=12,
+    )
+
+    subtitle_style = ParagraphStyle(
+        'CustomSubtitle',
+        parent=styles['Heading2'],
+        fontSize=14,
+        spaceAfter=8,
+    )
+
+    elements = []
+
+    for route_idx, route in enumerate(request.routes):
+        if route_idx > 0:
+            elements.append(Spacer(1, 0.5*inch))
+
+        # Route header
+        vehicle_name = route.vehicle_name or route.vehicle_id
+        elements.append(Paragraph(f"Driver Route Sheet: {vehicle_name}", title_style))
+
+        # Route summary
+        total_miles = route.total_distance * 0.621371  # km to miles
+        summary_data = [
+            ["Total Stops", str(len(route.stops))],
+            ["Total Distance", f"{total_miles:.1f} miles ({route.total_distance:.1f} km)"],
+            ["Total Time", f"{route.total_time} minutes"],
+            ["Load / Utilization", f"{route.total_load} units ({route.utilization}%)"],
+        ]
+
+        if request.cost_settings:
+            distance_cost = total_miles * request.cost_settings.cost_per_mile
+            time_cost = (route.total_time / 60) * request.cost_settings.cost_per_hour
+            route_cost = distance_cost + time_cost
+            summary_data.append(["Estimated Cost", f"${route_cost:.2f}"])
+
+        summary_table = Table(summary_data, colWidths=[1.5*inch, 3*inch])
+        summary_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 0.25*inch))
+
+        # Depot start
+        elements.append(Paragraph("Start: Depot", subtitle_style))
+        depot_info = f"Location: ({request.depot.latitude:.4f}, {request.depot.longitude:.4f})"
+        if request.depot.address:
+            depot_info = f"Address: {request.depot.address}"
+        elements.append(Paragraph(depot_info, styles['Normal']))
+        elements.append(Spacer(1, 0.15*inch))
+
+        # Stop list
+        elements.append(Paragraph("Stop Sequence:", subtitle_style))
+
+        stop_data = [["#", "ID", "Arrival", "Departure", "Distance", "Load"]]
+        for stop in route.stops:
+            stop_miles = stop.cumulative_distance * 0.621371
+            stop_data.append([
+                str(stop.sequence),
+                stop.delivery_id,
+                stop.arrival_time or "-",
+                stop.departure_time or "-",
+                f"{stop_miles:.1f} mi",
+                f"{stop.cumulative_load}",
+            ])
+
+        stop_table = Table(stop_data, colWidths=[0.4*inch, 1.2*inch, 0.9*inch, 0.9*inch, 0.9*inch, 0.7*inch])
+        stop_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ]))
+        elements.append(stop_table)
+        elements.append(Spacer(1, 0.15*inch))
+
+        # Return to depot
+        elements.append(Paragraph("End: Return to Depot", subtitle_style))
+
+    doc.build(elements)
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": "attachment; filename=route_sheets.pdf"}
+    )

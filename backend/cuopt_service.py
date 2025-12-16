@@ -16,6 +16,8 @@ from models import (
     RouteStop,
     LocationBase,
     OptimizationObjective,
+    CostSummary,
+    SavingsSummary,
 )
 
 
@@ -102,6 +104,42 @@ class MockCuOptService:
         # Placeholder for real API integration
         # See: https://docs.nvidia.com/cuopt/
         raise NotImplementedError("Real cuOpt API not yet implemented")
+
+    def _calculate_naive_route(self, depot, deliveries) -> tuple[float, int]:
+        """
+        Calculate the naive (unoptimized) route distance and time.
+        This visits all deliveries in the order they were provided,
+        then returns to depot. Used for savings comparison.
+        """
+        if not deliveries:
+            return 0.0, 0
+
+        total_distance = 0.0
+        current_lat = depot.latitude
+        current_lon = depot.longitude
+
+        for delivery in deliveries:
+            distance = haversine_distance(
+                current_lat, current_lon,
+                delivery.latitude, delivery.longitude
+            )
+            total_distance += distance
+            current_lat = delivery.latitude
+            current_lon = delivery.longitude
+
+        # Return to depot
+        total_distance += haversine_distance(
+            current_lat, current_lon,
+            depot.latitude, depot.longitude
+        )
+
+        # Calculate time (assuming 40 km/h average speed)
+        total_time = calculate_travel_time(total_distance)
+
+        # Add service time for all deliveries
+        total_time += sum(d.service_time for d in deliveries)
+
+        return total_distance, total_time
 
     def _mock_optimize(self, request: OptimizationRequest) -> OptimizationResult:
         """
@@ -256,6 +294,50 @@ class MockCuOptService:
         total_distance = sum(r.total_distance for r in routes)
         total_time = sum(r.total_time for r in routes)
 
+        # Calculate naive (unoptimized) route - visit all in order with one vehicle
+        naive_distance, naive_time = self._calculate_naive_route(depot, request.deliveries)
+
+        # Calculate savings
+        distance_saved = naive_distance - total_distance
+        time_saved = naive_time - total_time
+        distance_saved_percent = (distance_saved / naive_distance * 100) if naive_distance > 0 else 0
+        time_saved_percent = (time_saved / naive_time * 100) if naive_time > 0 else 0
+
+        savings_summary = SavingsSummary(
+            naive_distance=round(naive_distance, 2),
+            naive_time=naive_time,
+            optimized_distance=round(total_distance, 2),
+            optimized_time=total_time,
+            distance_saved=round(distance_saved, 2),
+            time_saved=time_saved,
+            distance_saved_percent=round(distance_saved_percent, 1),
+            time_saved_percent=round(time_saved_percent, 1),
+        )
+
+        # Calculate costs if cost settings provided
+        cost_summary = None
+        if request.cost_settings:
+            # Convert km to miles (1 km = 0.621371 miles)
+            total_miles = total_distance * 0.621371
+            total_hours = total_time / 60
+
+            distance_cost = total_miles * request.cost_settings.cost_per_mile
+            time_cost = total_hours * request.cost_settings.cost_per_hour
+            total_cost = distance_cost + time_cost
+
+            cost_summary = CostSummary(
+                distance_cost=round(distance_cost, 2),
+                time_cost=round(time_cost, 2),
+                total_cost=round(total_cost, 2),
+            )
+
+            # Calculate money saved
+            naive_miles = naive_distance * 0.621371
+            naive_hours = naive_time / 60
+            naive_cost = (naive_miles * request.cost_settings.cost_per_mile +
+                         naive_hours * request.cost_settings.cost_per_hour)
+            savings_summary.money_saved = round(naive_cost - total_cost, 2)
+
         return OptimizationResult(
             success=True,
             message=f"Optimization complete. {len(routes)} routes created.",
@@ -263,7 +345,9 @@ class MockCuOptService:
             unassigned_deliveries=unassigned,
             total_distance=round(total_distance, 2),
             total_time=total_time,
-            computation_time=round(computation_time, 3)
+            computation_time=round(computation_time, 3),
+            cost_summary=cost_summary,
+            savings_summary=savings_summary,
         )
 
 
