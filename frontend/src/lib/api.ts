@@ -14,6 +14,8 @@ export interface Depot extends Location {
 export interface Delivery extends Location {
   id: string;
   name?: string;
+  phone?: string;
+  notes?: string;
   demand?: number;
   time_window_start?: string;
   time_window_end?: string;
@@ -24,6 +26,7 @@ export interface Delivery extends Location {
 export interface Vehicle {
   id: string;
   name?: string;
+  driver_email?: string;
   capacity?: number;
   max_stops?: number;
   start_time?: string;
@@ -35,10 +38,13 @@ export interface RouteStop {
   sequence: number;
   delivery_id: string;
   location: Location;
+  customer_name?: string;
+  customer_phone?: string;
   arrival_time?: string;
   departure_time?: string;
   cumulative_distance: number;
   cumulative_load: number;
+  directions?: string;
 }
 
 export interface Route {
@@ -54,6 +60,23 @@ export interface Route {
 export interface CostSettings {
   cost_per_mile: number;
   cost_per_hour: number;
+}
+
+export interface CompanySettings {
+  name: string;
+  logo_url?: string;
+  address?: string;
+  phone?: string;
+}
+
+export interface RouteHistoryEntry {
+  id: string;
+  timestamp: string;
+  total_deliveries: number;
+  total_routes: number;
+  total_distance: number;
+  total_time: number;
+  total_cost?: number;
 }
 
 export interface CostSummary {
@@ -158,13 +181,18 @@ export async function getSampleData(): Promise<SampleData> {
   return response.json();
 }
 
-export async function exportRoutePDF(routes: Route[], depot: Depot, costSettings?: CostSettings): Promise<Blob> {
+export async function exportRoutePDF(
+  routes: Route[],
+  depot: Depot,
+  costSettings?: CostSettings,
+  company?: CompanySettings
+): Promise<Blob> {
   const response = await fetch(`${API_BASE}/export/pdf`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ routes, depot, cost_settings: costSettings }),
+    body: JSON.stringify({ routes, depot, cost_settings: costSettings, company }),
   });
 
   if (!response.ok) {
@@ -173,4 +201,51 @@ export async function exportRoutePDF(routes: Route[], depot: Depot, costSettings
   }
 
   return response.blob();
+}
+
+export async function saveRouteHistory(
+  depot: Depot,
+  routes: Route[],
+  totalDistance: number,
+  totalTime: number,
+  totalCost?: number
+): Promise<{ success: boolean; id: string; timestamp: string }> {
+  const response = await fetch(`${API_BASE}/history/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      depot,
+      routes,
+      total_distance: totalDistance,
+      total_time: totalTime,
+      total_cost: totalCost,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.detail || 'Failed to save history');
+  }
+
+  return response.json();
+}
+
+export async function getRouteHistory(): Promise<{ entries: RouteHistoryEntry[] }> {
+  const response = await fetch(`${API_BASE}/history`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch history');
+  }
+  return response.json();
+}
+
+export async function deleteRouteHistory(entryId: string): Promise<{ success: boolean }> {
+  const response = await fetch(`${API_BASE}/history/${entryId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete history entry');
+  }
+  return response.json();
 }

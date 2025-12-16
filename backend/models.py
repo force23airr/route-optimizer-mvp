@@ -17,6 +17,8 @@ class Depot(LocationBase):
 class Delivery(LocationBase):
     id: str
     name: Optional[str] = None
+    phone: Optional[str] = None
+    notes: Optional[str] = None
     demand: float = Field(default=1.0, ge=0, description="Package weight/volume")
     time_window_start: Optional[str] = None  # HH:MM format
     time_window_end: Optional[str] = None
@@ -27,6 +29,7 @@ class Delivery(LocationBase):
 class Vehicle(BaseModel):
     id: str
     name: Optional[str] = None
+    driver_email: Optional[str] = None
     capacity: float = Field(default=100.0, gt=0)
     max_stops: Optional[int] = Field(default=None, ge=1)
     start_time: str = Field(default="08:00")
@@ -58,10 +61,13 @@ class RouteStop(BaseModel):
     sequence: int
     delivery_id: str
     location: LocationBase
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
     arrival_time: Optional[str] = None
     departure_time: Optional[str] = None
     cumulative_distance: float
     cumulative_load: float
+    directions: Optional[str] = None  # Turn-by-turn directions to this stop
 
 
 class Route(BaseModel):
@@ -114,3 +120,30 @@ class UploadResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     version: str
+
+
+class CompanySettings(BaseModel):
+    name: str = "My Company"
+    logo_url: Optional[str] = None
+    address: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class EmailSettings(BaseModel):
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    username: str
+    password: str
+    from_email: str
+
+
+class RouteHistoryEntry(BaseModel):
+    id: str
+    timestamp: str
+    depot: Depot
+    total_deliveries: int
+    total_routes: int
+    total_distance: float
+    total_time: int
+    total_cost: Optional[float] = None
+    routes: list[Route]

@@ -13,6 +13,7 @@ import {
   type Vehicle,
   type OptimizationResult,
   type CostSettings,
+  type CompanySettings,
 } from '@/lib/api';
 
 // Dynamic import for MapView to avoid SSR issues with Leaflet
@@ -34,6 +35,7 @@ export default function Home() {
   ]);
   const [objective, setObjective] = useState<'minimize_distance' | 'minimize_time' | 'balance_routes'>('minimize_distance');
   const [costSettings, setCostSettings] = useState<CostSettings>({ cost_per_mile: 0.585, cost_per_hour: 25.0 });
+  const [companySettings, setCompanySettings] = useState<CompanySettings>({ name: 'My Company' });
   const [result, setResult] = useState<OptimizationResult | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
@@ -191,10 +193,12 @@ export default function Home() {
               vehicles={vehicles}
               objective={objective}
               costSettings={costSettings}
+              companySettings={companySettings}
               onDepotChange={setDepot}
               onVehiclesChange={setVehicles}
               onObjectiveChange={setObjective}
               onCostSettingsChange={setCostSettings}
+              onCompanySettingsChange={setCompanySettings}
               onOptimize={handleOptimize}
               isOptimizing={isOptimizing}
               hasDeliveries={deliveries.length > 0}
@@ -229,6 +233,7 @@ export default function Home() {
               onRouteSelect={setSelectedRouteIndex}
               depot={depot}
               costSettings={costSettings}
+              companySettings={companySettings}
             />
           </div>
         </div>

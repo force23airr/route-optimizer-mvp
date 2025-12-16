@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { Route, OptimizationResult, Depot, CostSettings } from '@/lib/api';
-import { exportRoutePDF } from '@/lib/api';
+import type { Route, OptimizationResult, Depot, CostSettings, CompanySettings } from '@/lib/api';
+import { exportRoutePDF, saveRouteHistory } from '@/lib/api';
 
 interface RoutesListProps {
   result: OptimizationResult | null;
@@ -8,6 +8,7 @@ interface RoutesListProps {
   onRouteSelect: (index: number | undefined) => void;
   depot: Depot;
   costSettings: CostSettings;
+  companySettings: CompanySettings;
 }
 
 const ROUTE_COLORS = [
@@ -21,14 +22,16 @@ const ROUTE_COLORS = [
   '#f781bf',
 ];
 
-export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, depot, costSettings }: RoutesListProps) {
+export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, depot, costSettings, companySettings }: RoutesListProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
 
   const handleExportPDF = async () => {
     if (!result) return;
     setIsExporting(true);
     try {
-      const blob = await exportRoutePDF(result.routes, depot, costSettings);
+      const blob = await exportRoutePDF(result.routes, depot, costSettings, companySettings);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -41,6 +44,27 @@ export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, 
       alert('Failed to export PDF: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleSaveHistory = async () => {
+    if (!result) return;
+    setIsSaving(true);
+    setSavedMessage(null);
+    try {
+      const response = await saveRouteHistory(
+        depot,
+        result.routes,
+        result.total_distance,
+        result.total_time,
+        result.cost_summary?.total_cost
+      );
+      setSavedMessage(`Saved! ID: ${response.id}`);
+      setTimeout(() => setSavedMessage(null), 3000);
+    } catch (err) {
+      alert('Failed to save: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -113,24 +137,48 @@ export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, 
         </div>
       )}
 
-      {/* Export PDF Button */}
-      <button
-        onClick={handleExportPDF}
-        disabled={isExporting}
-        style={{
-          width: '100%',
-          padding: '10px',
-          marginBottom: '12px',
-          backgroundColor: '#ff9800',
-          color: '#fff',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: isExporting ? 'not-allowed' : 'pointer',
-          fontWeight: 'bold',
-        }}
-      >
-        {isExporting ? 'Exporting...' : 'Export PDF Route Sheets'}
-      </button>
+      {/* Action Buttons */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+        <button
+          onClick={handleExportPDF}
+          disabled={isExporting}
+          style={{
+            flex: 1,
+            padding: '10px',
+            backgroundColor: '#ff9800',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isExporting ? 'not-allowed' : 'pointer',
+            fontWeight: 'bold',
+            fontSize: '13px',
+          }}
+        >
+          {isExporting ? 'Exporting...' : 'Export PDF'}
+        </button>
+        <button
+          onClick={handleSaveHistory}
+          disabled={isSaving}
+          style={{
+            flex: 1,
+            padding: '10px',
+            backgroundColor: '#4caf50',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: isSaving ? 'not-allowed' : 'pointer',
+            fontWeight: 'bold',
+            fontSize: '13px',
+          }}
+        >
+          {isSaving ? 'Saving...' : 'Save History'}
+        </button>
+      </div>
+      {savedMessage && (
+        <div style={{ marginBottom: '12px', padding: '8px', backgroundColor: '#e8f5e9', borderRadius: '4px', fontSize: '13px', color: '#2e7d32' }}>
+          {savedMessage}
+        </div>
+      )}
 
       {/* Show all button */}
       <button
@@ -215,18 +263,29 @@ export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, 
             {selectedRouteIndex === index && (
               <div style={{ marginTop: '12px', borderTop: '1px solid #eee', paddingTop: '12px' }}>
                 <p style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>
-                  Stop Sequence:
+                  Stop Details:
                 </p>
-                <ol style={{ margin: 0, paddingLeft: '20px', fontSize: '12px' }}>
+                <div style={{ fontSize: '12px' }}>
                   {route.stops.map((stop) => (
-                    <li key={stop.delivery_id} style={{ marginBottom: '4px' }}>
-                      {stop.delivery_id}
-                      {stop.arrival_time && (
-                        <span style={{ color: '#666' }}> @ {stop.arrival_time}</span>
+                    <div key={stop.delivery_id} style={{ marginBottom: '10px', paddingBottom: '8px', borderBottom: '1px solid #f0f0f0' }}>
+                      <div style={{ fontWeight: 'bold' }}>
+                        {stop.sequence}. {stop.customer_name || stop.delivery_id}
+                        {stop.arrival_time && (
+                          <span style={{ color: '#666', fontWeight: 'normal' }}> @ {stop.arrival_time}</span>
+                        )}
+                      </div>
+                      {stop.customer_phone && (
+                        <div style={{ color: '#1976d2', fontSize: '11px' }}>Phone: {stop.customer_phone}</div>
                       )}
-                    </li>
+                      {stop.location.address && (
+                        <div style={{ color: '#666', fontSize: '11px' }}>{stop.location.address}</div>
+                      )}
+                      {stop.directions && (
+                        <div style={{ color: '#ff9800', fontSize: '11px', fontStyle: 'italic' }}>{stop.directions}</div>
+                      )}
+                    </div>
                   ))}
-                </ol>
+                </div>
               </div>
             )}
           </div>

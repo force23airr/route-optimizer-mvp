@@ -142,13 +142,16 @@ export default function MapView({ depot, deliveries, routes, selectedRouteIndex 
 
           const delivery = deliveries.find((d) => d.id === stop.delivery_id);
 
+          const popupContent = `
+            <b>${stop.customer_name || delivery?.name || stop.delivery_id}</b><br/>
+            ${stop.location.address ? `${stop.location.address}<br/>` : ''}
+            ${stop.customer_phone ? `<span style="color:#1976d2;">Phone: ${stop.customer_phone}</span><br/>` : ''}
+            <small>Arrival: ${stop.arrival_time || 'N/A'} | Distance: ${stop.cumulative_distance.toFixed(1)} km</small>
+            ${stop.directions ? `<br/><i style="color:#ff9800;font-size:11px;">${stop.directions}</i>` : ''}
+          `;
+
           L.marker([stop.location.latitude, stop.location.longitude], { icon: numberIcon, opacity })
-            .bindPopup(
-              `<b>${delivery?.name || stop.delivery_id}</b><br/>
-               ${stop.location.address || ''}<br/>
-               <small>Arrival: ${stop.arrival_time || 'N/A'}<br/>
-               Distance: ${stop.cumulative_distance.toFixed(1)} km</small>`
-            )
+            .bindPopup(popupContent)
             .addTo(markersLayer);
         });
 
@@ -168,12 +171,15 @@ export default function MapView({ depot, deliveries, routes, selectedRouteIndex 
       deliveries.forEach((delivery) => {
         bounds.push([delivery.latitude, delivery.longitude]);
 
+        const deliveryPopup = `
+          <b>${delivery.name || delivery.id}</b><br/>
+          ${delivery.address ? `${delivery.address}<br/>` : ''}
+          ${delivery.phone ? `<span style="color:#1976d2;">Phone: ${delivery.phone}</span><br/>` : ''}
+          <small>Demand: ${delivery.demand || 1}</small>
+        `;
+
         L.marker([delivery.latitude, delivery.longitude])
-          .bindPopup(
-            `<b>${delivery.name || delivery.id}</b><br/>
-             ${delivery.address || ''}<br/>
-             <small>Demand: ${delivery.demand || 1}</small>`
-          )
+          .bindPopup(deliveryPopup)
           .addTo(markersLayer);
       });
     }

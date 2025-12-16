@@ -1,14 +1,16 @@
-import type { Depot, Vehicle, CostSettings } from '@/lib/api';
+import type { Depot, Vehicle, CostSettings, CompanySettings } from '@/lib/api';
 
 interface SettingsPanelProps {
   depot: Depot;
   vehicles: Vehicle[];
   objective: 'minimize_distance' | 'minimize_time' | 'balance_routes';
   costSettings: CostSettings;
+  companySettings: CompanySettings;
   onDepotChange: (depot: Depot) => void;
   onVehiclesChange: (vehicles: Vehicle[]) => void;
   onObjectiveChange: (objective: 'minimize_distance' | 'minimize_time' | 'balance_routes') => void;
   onCostSettingsChange: (costSettings: CostSettings) => void;
+  onCompanySettingsChange: (companySettings: CompanySettings) => void;
   onOptimize: () => void;
   isOptimizing: boolean;
   hasDeliveries: boolean;
@@ -19,10 +21,12 @@ export default function SettingsPanel({
   vehicles,
   objective,
   costSettings,
+  companySettings,
   onDepotChange,
   onVehiclesChange,
   onObjectiveChange,
   onCostSettingsChange,
+  onCompanySettingsChange,
   onOptimize,
   isOptimizing,
   hasDeliveries,
@@ -148,6 +152,47 @@ export default function SettingsPanel({
               onChange={(e) =>
                 onCostSettingsChange({ ...costSettings, cost_per_hour: parseFloat(e.target.value) || 0 })
               }
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+              }}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Company Settings */}
+      <section style={{ marginBottom: '24px' }}>
+        <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>Company (for PDF)</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+              Company Name
+            </label>
+            <input
+              type="text"
+              value={companySettings.name}
+              onChange={(e) => onCompanySettingsChange({ ...companySettings, name: e.target.value })}
+              placeholder="My Company"
+              style={{
+                width: '100%',
+                padding: '8px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+              Phone
+            </label>
+            <input
+              type="text"
+              value={companySettings.phone || ''}
+              onChange={(e) => onCompanySettingsChange({ ...companySettings, phone: e.target.value || undefined })}
+              placeholder="(555) 123-4567"
               style={{
                 width: '100%',
                 padding: '8px',

@@ -105,6 +105,35 @@ class MockCuOptService:
         # See: https://docs.nvidia.com/cuopt/
         raise NotImplementedError("Real cuOpt API not yet implemented")
 
+    def _get_directions(self, from_lat: float, from_lon: float, to_lat: float, to_lon: float, distance_km: float) -> str:
+        """
+        Generate simple turn-by-turn directions based on cardinal direction.
+        For production, integrate with a routing API like Google Maps, OSRM, or Mapbox.
+        """
+        lat_diff = to_lat - from_lat
+        lon_diff = to_lon - from_lon
+
+        # Determine primary direction
+        if abs(lat_diff) > abs(lon_diff):
+            primary = "north" if lat_diff > 0 else "south"
+        else:
+            primary = "east" if lon_diff > 0 else "west"
+
+        # Determine secondary direction if significant
+        secondary = ""
+        if abs(lat_diff) > 0.001 and abs(lon_diff) > 0.001:
+            if abs(lat_diff) > abs(lon_diff):
+                secondary = "east" if lon_diff > 0 else "west"
+            else:
+                secondary = "north" if lat_diff > 0 else "south"
+
+        distance_miles = distance_km * 0.621371
+
+        if secondary:
+            return f"Head {primary}, then {secondary} for {distance_miles:.1f} miles"
+        else:
+            return f"Head {primary} for {distance_miles:.1f} miles"
+
     def _calculate_naive_route(self, depot, deliveries) -> tuple[float, int]:
         """
         Calculate the naive (unoptimized) route distance and time.
@@ -244,6 +273,13 @@ class MockCuOptService:
 
                 departure_time = arrival_time + best_delivery.service_time
 
+                # Generate simple directions
+                directions = self._get_directions(
+                    current_lat, current_lon,
+                    best_delivery.latitude, best_delivery.longitude,
+                    distance
+                )
+
                 route_stops.append(RouteStop(
                     sequence=len(route_stops) + 1,
                     delivery_id=best_delivery.id,
@@ -252,10 +288,13 @@ class MockCuOptService:
                         longitude=best_delivery.longitude,
                         address=best_delivery.address
                     ),
+                    customer_name=best_delivery.name,
+                    customer_phone=best_delivery.phone,
                     arrival_time=minutes_to_time(arrival_time),
                     departure_time=minutes_to_time(departure_time),
                     cumulative_distance=round(cumulative_distance, 2),
-                    cumulative_load=current_load
+                    cumulative_load=current_load,
+                    directions=directions
                 ))
 
                 assigned_delivery_ids.add(best_delivery.id)

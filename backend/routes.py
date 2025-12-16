@@ -19,8 +19,19 @@ from models import (
     OptimizationObjective,
     Route,
     CostSettings,
+    CompanySettings,
+    RouteHistoryEntry,
 )
 from cuopt_service import get_cuopt_service, MockCuOptService
+import json
+import os
+import uuid
+from datetime import datetime
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email.mime.text import MIMEText
+from email import encoders
 
 router = APIRouter()
 
@@ -73,6 +84,8 @@ async def upload_deliveries(file: UploadFile = File(...)):
                 delivery = Delivery(
                     id=row["id"].strip(),
                     name=row.get("name", "").strip() or None,
+                    phone=row.get("phone", "").strip() or None,
+                    notes=row.get("notes", "").strip() or None,
                     latitude=float(row["latitude"]),
                     longitude=float(row["longitude"]),
                     address=row.get("address", "").strip() or None,
@@ -216,10 +229,15 @@ async def get_sample_data():
     }
 
 
+HISTORY_DIR = os.path.join(os.path.dirname(__file__), "route_history")
+os.makedirs(HISTORY_DIR, exist_ok=True)
+
+
 class PDFExportRequest(BaseModel):
     routes: list[Route]
     depot: Depot
     cost_settings: Optional[CostSettings] = None
+    company: Optional[CompanySettings] = None
 
 
 @router.post("/export/pdf")
@@ -231,12 +249,20 @@ async def export_routes_pdf(request: PDFExportRequest):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib import colors
     from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=0.5*inch, bottomMargin=0.5*inch)
     styles = getSampleStyleSheet()
+
+    company_style = ParagraphStyle(
+        'CompanyHeader',
+        parent=styles['Heading1'],
+        fontSize=20,
+        spaceAfter=4,
+        textColor=colors.HexColor('#1976d2'),
+    )
 
     title_style = ParagraphStyle(
         'CustomTitle',
@@ -252,15 +278,33 @@ async def export_routes_pdf(request: PDFExportRequest):
         spaceAfter=8,
     )
 
+    small_style = ParagraphStyle(
+        'SmallText',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.grey,
+    )
+
     elements = []
 
     for route_idx, route in enumerate(request.routes):
         if route_idx > 0:
-            elements.append(Spacer(1, 0.5*inch))
+            elements.append(PageBreak())
+
+        # Company header
+        if request.company:
+            elements.append(Paragraph(request.company.name, company_style))
+            if request.company.address:
+                elements.append(Paragraph(request.company.address, small_style))
+            if request.company.phone:
+                elements.append(Paragraph(f"Phone: {request.company.phone}", small_style))
+            elements.append(Spacer(1, 0.2*inch))
 
         # Route header
         vehicle_name = route.vehicle_name or route.vehicle_id
         elements.append(Paragraph(f"Driver Route Sheet: {vehicle_name}", title_style))
+        elements.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", small_style))
+        elements.append(Spacer(1, 0.1*inch))
 
         # Route summary
         total_miles = route.total_distance * 0.621371  # km to miles
@@ -294,36 +338,35 @@ async def export_routes_pdf(request: PDFExportRequest):
         elements.append(Paragraph(depot_info, styles['Normal']))
         elements.append(Spacer(1, 0.15*inch))
 
-        # Stop list
-        elements.append(Paragraph("Stop Sequence:", subtitle_style))
+        # Detailed stop list with customer info and directions
+        elements.append(Paragraph("Stop Details:", subtitle_style))
 
-        stop_data = [["#", "ID", "Arrival", "Departure", "Distance", "Load"]]
         for stop in route.stops:
             stop_miles = stop.cumulative_distance * 0.621371
-            stop_data.append([
-                str(stop.sequence),
-                stop.delivery_id,
-                stop.arrival_time or "-",
-                stop.departure_time or "-",
-                f"{stop_miles:.1f} mi",
-                f"{stop.cumulative_load}",
-            ])
 
-        stop_table = Table(stop_data, colWidths=[0.4*inch, 1.2*inch, 0.9*inch, 0.9*inch, 0.9*inch, 0.7*inch])
-        stop_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, -1), 9),
-            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
-            ('TOPPADDING', (0, 0), (-1, -1), 4),
-        ]))
-        elements.append(stop_table)
-        elements.append(Spacer(1, 0.15*inch))
+            # Stop header
+            stop_header = f"Stop {stop.sequence}: {stop.delivery_id}"
+            if stop.customer_name:
+                stop_header = f"Stop {stop.sequence}: {stop.customer_name} ({stop.delivery_id})"
+            elements.append(Paragraph(f"<b>{stop_header}</b>", styles['Normal']))
+
+            # Directions
+            if stop.directions:
+                elements.append(Paragraph(f"<i>Directions: {stop.directions}</i>", small_style))
+
+            # Address and contact
+            if stop.location.address:
+                elements.append(Paragraph(f"Address: {stop.location.address}", styles['Normal']))
+            if stop.customer_phone:
+                elements.append(Paragraph(f"Phone: {stop.customer_phone}", styles['Normal']))
+
+            # Times
+            time_info = f"Arrival: {stop.arrival_time or '-'} | Departure: {stop.departure_time or '-'} | Distance: {stop_miles:.1f} mi"
+            elements.append(Paragraph(time_info, small_style))
+            elements.append(Spacer(1, 0.1*inch))
 
         # Return to depot
+        elements.append(Spacer(1, 0.1*inch))
         elements.append(Paragraph("End: Return to Depot", subtitle_style))
 
     doc.build(elements)
@@ -334,3 +377,173 @@ async def export_routes_pdf(request: PDFExportRequest):
         media_type="application/pdf",
         headers={"Content-Disposition": "attachment; filename=route_sheets.pdf"}
     )
+
+
+class EmailRouteRequest(BaseModel):
+    routes: list[Route]
+    depot: Depot
+    cost_settings: Optional[CostSettings] = None
+    company: Optional[CompanySettings] = None
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_username: str
+    smtp_password: str
+    from_email: str
+    driver_emails: dict[str, str]  # vehicle_id -> email
+
+
+@router.post("/export/email")
+async def email_route_sheets(request: EmailRouteRequest):
+    """
+    Email route sheets directly to drivers.
+    Requires SMTP configuration and driver email addresses.
+    """
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib import colors
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+
+    sent_count = 0
+    errors = []
+
+    for route in request.routes:
+        driver_email = request.driver_emails.get(route.vehicle_id)
+        if not driver_email:
+            continue
+
+        # Generate PDF for this route
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        styles = getSampleStyleSheet()
+        elements = []
+
+        # Company header
+        if request.company:
+            elements.append(Paragraph(request.company.name, styles['Heading1']))
+
+        vehicle_name = route.vehicle_name or route.vehicle_id
+        elements.append(Paragraph(f"Route Sheet: {vehicle_name}", styles['Heading2']))
+        elements.append(Paragraph(f"Date: {datetime.now().strftime('%Y-%m-%d')}", styles['Normal']))
+        elements.append(Spacer(1, 0.2*inch))
+
+        # Stops
+        for stop in route.stops:
+            stop_text = f"Stop {stop.sequence}: {stop.customer_name or stop.delivery_id}"
+            if stop.location.address:
+                stop_text += f" - {stop.location.address}"
+            if stop.customer_phone:
+                stop_text += f" (Phone: {stop.customer_phone})"
+            elements.append(Paragraph(stop_text, styles['Normal']))
+            if stop.directions:
+                elements.append(Paragraph(f"  Directions: {stop.directions}", styles['Italic']))
+
+        doc.build(elements)
+        buffer.seek(0)
+
+        # Send email
+        try:
+            msg = MIMEMultipart()
+            msg['From'] = request.from_email
+            msg['To'] = driver_email
+            msg['Subject'] = f"Route Sheet - {vehicle_name} - {datetime.now().strftime('%Y-%m-%d')}"
+
+            body = f"Please find your route sheet attached for {datetime.now().strftime('%Y-%m-%d')}.\n\nTotal Stops: {len(route.stops)}\nTotal Distance: {route.total_distance:.1f} km"
+            msg.attach(MIMEText(body, 'plain'))
+
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(buffer.read())
+            encoders.encode_base64(part)
+            part.add_header('Content-Disposition', f'attachment; filename="route_sheet_{route.vehicle_id}.pdf"')
+            msg.attach(part)
+
+            server = smtplib.SMTP(request.smtp_host, request.smtp_port)
+            server.starttls()
+            server.login(request.smtp_username, request.smtp_password)
+            server.send_message(msg)
+            server.quit()
+            sent_count += 1
+        except Exception as e:
+            errors.append(f"{vehicle_name}: {str(e)}")
+
+    return {
+        "success": len(errors) == 0,
+        "sent_count": sent_count,
+        "errors": errors
+    }
+
+
+class SaveHistoryRequest(BaseModel):
+    depot: Depot
+    routes: list[Route]
+    total_distance: float
+    total_time: int
+    total_cost: Optional[float] = None
+
+
+@router.post("/history/save")
+async def save_route_history(request: SaveHistoryRequest):
+    """Save optimization result to history for reporting."""
+    entry_id = str(uuid.uuid4())[:8]
+    timestamp = datetime.now().isoformat()
+
+    entry = RouteHistoryEntry(
+        id=entry_id,
+        timestamp=timestamp,
+        depot=request.depot,
+        total_deliveries=sum(len(r.stops) for r in request.routes),
+        total_routes=len(request.routes),
+        total_distance=request.total_distance,
+        total_time=request.total_time,
+        total_cost=request.total_cost,
+        routes=request.routes
+    )
+
+    filepath = os.path.join(HISTORY_DIR, f"{entry_id}.json")
+    with open(filepath, 'w') as f:
+        f.write(entry.model_dump_json(indent=2))
+
+    return {"success": True, "id": entry_id, "timestamp": timestamp}
+
+
+@router.get("/history")
+async def get_route_history():
+    """Get all saved route history entries."""
+    entries = []
+    for filename in os.listdir(HISTORY_DIR):
+        if filename.endswith('.json'):
+            filepath = os.path.join(HISTORY_DIR, filename)
+            with open(filepath, 'r') as f:
+                data = json.load(f)
+                # Return summary without full route details
+                entries.append({
+                    "id": data["id"],
+                    "timestamp": data["timestamp"],
+                    "total_deliveries": data["total_deliveries"],
+                    "total_routes": data["total_routes"],
+                    "total_distance": data["total_distance"],
+                    "total_time": data["total_time"],
+                    "total_cost": data.get("total_cost"),
+                })
+    entries.sort(key=lambda x: x["timestamp"], reverse=True)
+    return {"entries": entries}
+
+
+@router.get("/history/{entry_id}")
+async def get_route_history_entry(entry_id: str):
+    """Get a specific route history entry with full details."""
+    filepath = os.path.join(HISTORY_DIR, f"{entry_id}.json")
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="History entry not found")
+    with open(filepath, 'r') as f:
+        return json.load(f)
+
+
+@router.delete("/history/{entry_id}")
+async def delete_route_history_entry(entry_id: str):
+    """Delete a route history entry."""
+    filepath = os.path.join(HISTORY_DIR, f"{entry_id}.json")
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="History entry not found")
+    os.remove(filepath)
+    return {"success": True}
