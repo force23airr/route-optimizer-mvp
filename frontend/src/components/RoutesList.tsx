@@ -31,7 +31,7 @@ export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, 
     if (!result) return;
     setIsExporting(true);
     try {
-      const blob = await exportRoutePDF(result.routes, depot, costSettings, companySettings);
+      const blob = await exportRoutePDF(result.routes, depot, costSettings, companySettings, result.comparison_summary);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -134,6 +134,119 @@ export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, 
               Money Saved: ${result.savings_summary.money_saved.toFixed(2)}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Route Comparison Report */}
+      {result.comparison_summary && (
+        <div style={{
+          backgroundColor: '#f5f5f5',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '16px',
+          border: '2px solid #1976d2'
+        }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', color: '#1976d2' }}>
+            📊 Route Comparison Report
+          </h3>
+
+          {/* Comparison Table */}
+          <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #ddd' }}>
+                  <th style={{ textAlign: 'left', padding: '8px', fontWeight: 'bold' }}>Scenario</th>
+                  <th style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>Distance</th>
+                  <th style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>Time</th>
+                  <th style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>Vehicles</th>
+                  {result.comparison_summary.multi_vehicle.total_cost !== undefined && (
+                    <th style={{ textAlign: 'right', padding: '8px', fontWeight: 'bold' }}>Cost</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                <tr style={{ backgroundColor: '#ffebee' }}>
+                  <td style={{ padding: '8px' }}>📋 Manual (CSV Order)</td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>
+                    {result.comparison_summary.unoptimized.total_distance.toFixed(1)} km
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>
+                    {result.comparison_summary.unoptimized.total_time} min
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>1 (overworked!)</td>
+                  {result.comparison_summary.unoptimized.total_cost !== undefined && (
+                    <td style={{ textAlign: 'right', padding: '8px' }}>
+                      ${result.comparison_summary.unoptimized.total_cost.toFixed(2)}
+                    </td>
+                  )}
+                </tr>
+
+                <tr style={{ backgroundColor: '#fff3e0' }}>
+                  <td style={{ padding: '8px' }}>🗺️ Single Vehicle (Google-style)</td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>
+                    {result.comparison_summary.single_vehicle.total_distance.toFixed(1)} km
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>
+                    {result.comparison_summary.single_vehicle.total_time} min
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>Still just 1</td>
+                  {result.comparison_summary.single_vehicle.total_cost !== undefined && (
+                    <td style={{ textAlign: 'right', padding: '8px' }}>
+                      ${result.comparison_summary.single_vehicle.total_cost.toFixed(2)}
+                    </td>
+                  )}
+                </tr>
+
+                <tr style={{ backgroundColor: '#e8f5e9', fontWeight: 'bold' }}>
+                  <td style={{ padding: '8px' }}>🚀 Your Optimized Fleet</td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>
+                    {result.comparison_summary.multi_vehicle.total_distance.toFixed(1)} km
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>
+                    {result.comparison_summary.multi_vehicle.total_time} min
+                  </td>
+                  <td style={{ textAlign: 'right', padding: '8px' }}>
+                    {result.comparison_summary.multi_vehicle.vehicle_count} (balanced)
+                  </td>
+                  {result.comparison_summary.multi_vehicle.total_cost !== undefined && (
+                    <td style={{ textAlign: 'right', padding: '8px' }}>
+                      ${result.comparison_summary.multi_vehicle.total_cost.toFixed(2)}
+                    </td>
+                  )}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Savings Section */}
+          <div style={{ padding: '12px', backgroundColor: '#e3f2fd', borderRadius: '4px', marginBottom: '12px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '4px', color: '#1565c0' }}>
+              💰 SAVINGS vs Manual:
+            </div>
+            <div style={{ fontSize: '13px' }}>
+              {(result.comparison_summary.unoptimized.total_distance - result.comparison_summary.multi_vehicle.total_distance).toFixed(1)} km saved
+              ({(((result.comparison_summary.unoptimized.total_distance - result.comparison_summary.multi_vehicle.total_distance) / result.comparison_summary.unoptimized.total_distance) * 100).toFixed(1)}%)
+              {result.comparison_summary.unoptimized.total_cost !== undefined && (
+                <> • ${(result.comparison_summary.unoptimized.total_cost - result.comparison_summary.multi_vehicle.total_cost!).toFixed(2)} saved</>
+              )}
+            </div>
+          </div>
+
+          {/* What Google Can't Do */}
+          <div style={{ padding: '12px', backgroundColor: '#fff9c4', borderRadius: '4px', borderLeft: '4px solid #fbc02d' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '6px', color: '#f57f17' }}>
+              ⚡ WHAT GOOGLE CAN'T DO:
+            </div>
+            <ul style={{ margin: '6px 0', paddingLeft: '20px', fontSize: '12px', lineHeight: '1.6' }}>
+              <li>❌ {result.routes.length} vehicles (max 10 stops per vehicle in Google)</li>
+              <li>❌ Capacity limits</li>
+              <li>❌ Time windows</li>
+              <li>❌ Balanced workload across fleet</li>
+            </ul>
+            <div style={{ fontSize: '12px', marginTop: '8px', fontStyle: 'italic' }}>
+              <strong>Google Maps optimizes for 1 driver. We optimize your entire fleet.</strong>
+            </div>
+          </div>
         </div>
       )}
 

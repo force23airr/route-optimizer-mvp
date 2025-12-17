@@ -97,6 +97,19 @@ export interface SavingsSummary {
   money_saved?: number;
 }
 
+export interface ScenarioMetrics {
+  total_distance: number;
+  total_time: number;
+  vehicle_count: number;
+  total_cost?: number;
+}
+
+export interface ComparisonSummary {
+  unoptimized: ScenarioMetrics;
+  single_vehicle: ScenarioMetrics;
+  multi_vehicle: ScenarioMetrics;
+}
+
 export interface OptimizationResult {
   success: boolean;
   message: string;
@@ -107,6 +120,7 @@ export interface OptimizationResult {
   computation_time: number;
   cost_summary?: CostSummary;
   savings_summary?: SavingsSummary;
+  comparison_summary?: ComparisonSummary;
 }
 
 export interface UploadResponse {
@@ -185,14 +199,15 @@ export async function exportRoutePDF(
   routes: Route[],
   depot: Depot,
   costSettings?: CostSettings,
-  company?: CompanySettings
+  company?: CompanySettings,
+  comparisonSummary?: ComparisonSummary
 ): Promise<Blob> {
   const response = await fetch(`${API_BASE}/export/pdf`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ routes, depot, cost_settings: costSettings, company }),
+    body: JSON.stringify({ routes, depot, cost_settings: costSettings, company, comparison_summary: comparisonSummary }),
   });
 
   if (!response.ok) {

@@ -18,6 +18,12 @@ from models import (
     OptimizationObjective,
     CostSummary,
     SavingsSummary,
+    ScenarioMetrics,
+    ComparisonSummary,
+    Depot,
+    Delivery,
+    Vehicle,
+    CostSettings,
 )
 
 
@@ -169,6 +175,103 @@ class MockCuOptService:
         total_time += sum(d.service_time for d in deliveries)
 
         return total_distance, total_time
+
+    def _calculate_single_vehicle_optimized(
+        self,
+        depot: Depot,
+        deliveries: list[Delivery],
+        vehicles: list[Vehicle]
+    ) -> tuple[float, int]:
+        """Calculate optimized route for single vehicle using nearest-neighbor."""
+        if not deliveries:
+            return 0.0, 0
+
+        # Use first vehicle or create high-capacity vehicle
+        vehicle = vehicles[0] if vehicles else Vehicle(
+            id="temp_single",
+            capacity=99999.0,
+            start_time="08:00",
+            end_time="23:00"
+        )
+
+        # Run nearest-neighbor with single vehicle
+        current_lat, current_lon = depot.latitude, depot.longitude
+        current_time = time_to_minutes(vehicle.start_time)
+        total_distance = 0.0
+        remaining = deliveries.copy()
+
+        while remaining:
+            # Find nearest delivery
+            nearest = min(
+                remaining,
+                key=lambda d: haversine_distance(current_lat, current_lon, d.latitude, d.longitude)
+            )
+
+            distance = haversine_distance(current_lat, current_lon, nearest.latitude, nearest.longitude)
+            total_distance += distance
+            current_time += calculate_travel_time(distance) + nearest.service_time
+            current_lat, current_lon = nearest.latitude, nearest.longitude
+            remaining.remove(nearest)
+
+        # Return to depot
+        total_distance += haversine_distance(current_lat, current_lon, depot.latitude, depot.longitude)
+        total_time = current_time - time_to_minutes(vehicle.start_time)
+
+        return total_distance, total_time
+
+    def _build_comparison_summary(
+        self,
+        depot: Depot,
+        deliveries: list[Delivery],
+        vehicles: list[Vehicle],
+        naive_distance: float,
+        naive_time: int,
+        optimized_distance: float,
+        optimized_time: int,
+        num_vehicles_used: int,
+        cost_settings: Optional[CostSettings]
+    ) -> ComparisonSummary:
+        """Build comparison with all three scenarios."""
+
+        # Calculate single-vehicle optimized
+        single_distance, single_time = self._calculate_single_vehicle_optimized(
+            depot, deliveries, vehicles
+        )
+
+        # Build metrics
+        unoptimized = ScenarioMetrics(
+            total_distance=round(naive_distance, 2),
+            total_time=naive_time,
+            vehicle_count=1
+        )
+
+        single_vehicle = ScenarioMetrics(
+            total_distance=round(single_distance, 2),
+            total_time=single_time,
+            vehicle_count=1
+        )
+
+        multi_vehicle = ScenarioMetrics(
+            total_distance=round(optimized_distance, 2),
+            total_time=optimized_time,
+            vehicle_count=num_vehicles_used
+        )
+
+        # Add costs if provided
+        if cost_settings:
+            for scenario in [unoptimized, single_vehicle, multi_vehicle]:
+                miles = scenario.total_distance * 0.621371
+                hours = scenario.total_time / 60
+                scenario.total_cost = round(
+                    miles * cost_settings.cost_per_mile + hours * cost_settings.cost_per_hour,
+                    2
+                )
+
+        return ComparisonSummary(
+            unoptimized=unoptimized,
+            single_vehicle=single_vehicle,
+            multi_vehicle=multi_vehicle
+        )
 
     def _mock_optimize(self, request: OptimizationRequest) -> OptimizationResult:
         """
@@ -377,6 +480,20 @@ class MockCuOptService:
                          naive_hours * request.cost_settings.cost_per_hour)
             savings_summary.money_saved = round(naive_cost - total_cost, 2)
 
+        # Build comparison summary
+        num_vehicles_used = len(routes)
+        comparison_summary = self._build_comparison_summary(
+            depot=depot,
+            deliveries=request.deliveries,
+            vehicles=request.vehicles,
+            naive_distance=naive_distance,
+            naive_time=naive_time,
+            optimized_distance=total_distance,
+            optimized_time=total_time,
+            num_vehicles_used=num_vehicles_used,
+            cost_settings=request.cost_settings
+        )
+
         return OptimizationResult(
             success=True,
             message=f"Optimization complete. {len(routes)} routes created.",
@@ -387,6 +504,7 @@ class MockCuOptService:
             computation_time=round(computation_time, 3),
             cost_summary=cost_summary,
             savings_summary=savings_summary,
+            comparison_summary=comparison_summary,
         )
 
 

@@ -21,6 +21,7 @@ from models import (
     CostSettings,
     CompanySettings,
     RouteHistoryEntry,
+    ComparisonSummary,
 )
 from cuopt_service import get_cuopt_service, MockCuOptService
 from routing_service import get_route_geometries
@@ -249,6 +250,7 @@ class PDFExportRequest(BaseModel):
     depot: Depot
     cost_settings: Optional[CostSettings] = None
     company: Optional[CompanySettings] = None
+    comparison_summary: Optional[ComparisonSummary] = None
 
 
 @router.post("/export/pdf")
@@ -297,6 +299,76 @@ async def export_routes_pdf(request: PDFExportRequest):
     )
 
     elements = []
+
+    # Add comparison summary page if available
+    if request.comparison_summary:
+        elements.append(Paragraph("Route Comparison Report", title_style))
+        elements.append(Spacer(1, 0.2*inch))
+
+        # Build comparison table
+        comp = request.comparison_summary
+        comparison_data = [
+            ["Scenario", "Distance", "Time", "Vehicles", "Cost"],
+            [
+                "Manual (CSV Order)",
+                f"{comp.unoptimized.total_distance:.1f} km",
+                f"{comp.unoptimized.total_time} min",
+                "1 (overworked!)",
+                f"${comp.unoptimized.total_cost:.2f}" if comp.unoptimized.total_cost else "-"
+            ],
+            [
+                "Single Vehicle (Google-style)",
+                f"{comp.single_vehicle.total_distance:.1f} km",
+                f"{comp.single_vehicle.total_time} min",
+                "Still just 1",
+                f"${comp.single_vehicle.total_cost:.2f}" if comp.single_vehicle.total_cost else "-"
+            ],
+            [
+                "Your Optimized Fleet",
+                f"{comp.multi_vehicle.total_distance:.1f} km",
+                f"{comp.multi_vehicle.total_time} min",
+                f"{comp.multi_vehicle.vehicle_count} (balanced)",
+                f"${comp.multi_vehicle.total_cost:.2f}" if comp.multi_vehicle.total_cost else "-"
+            ],
+        ]
+
+        comparison_table = Table(comparison_data, colWidths=[2*inch, 1.2*inch, 1*inch, 1.2*inch, 1*inch])
+        comparison_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1976d2')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#ffebee')),
+            ('BACKGROUND', (0, 2), (-1, 2), colors.HexColor('#fff3e0')),
+            ('BACKGROUND', (0, 3), (-1, 3), colors.HexColor('#e8f5e9')),
+            ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+            ('PADDING', (0, 0), (-1, -1), 6),
+        ]))
+        elements.append(comparison_table)
+        elements.append(Spacer(1, 0.3*inch))
+
+        # Savings
+        dist_saved = comp.unoptimized.total_distance - comp.multi_vehicle.total_distance
+        dist_percent = (dist_saved / comp.unoptimized.total_distance) * 100 if comp.unoptimized.total_distance > 0 else 0
+        savings_text = f"<b>Savings vs Manual:</b> {dist_saved:.1f} km ({dist_percent:.1f}%)"
+        if comp.unoptimized.total_cost:
+            cost_saved = comp.unoptimized.total_cost - comp.multi_vehicle.total_cost
+            savings_text += f" | ${cost_saved:.2f} saved"
+        elements.append(Paragraph(savings_text, styles['Normal']))
+        elements.append(Spacer(1, 0.2*inch))
+
+        # What Google Can't Do
+        elements.append(Paragraph("<b>What Google Can't Do:</b>", subtitle_style))
+        google_bullets = [
+            f"Google Maps optimizes for 1 driver (max 10 stops)",
+            f"We optimize {comp.multi_vehicle.vehicle_count} vehicles with capacity limits, time windows, and balanced workload",
+            f"Google is a GPS. We're a fleet management system."
+        ]
+        for bullet in google_bullets:
+            elements.append(Paragraph(f"• {bullet}", styles['Normal']))
+
+        elements.append(PageBreak())
 
     for route_idx, route in enumerate(request.routes):
         if route_idx > 0:

@@ -98,6 +98,19 @@ class SavingsSummary(BaseModel):
     money_saved: Optional[float] = None
 
 
+class ScenarioMetrics(BaseModel):
+    total_distance: float  # km
+    total_time: int  # minutes
+    vehicle_count: int
+    total_cost: Optional[float] = None
+
+
+class ComparisonSummary(BaseModel):
+    unoptimized: ScenarioMetrics  # CSV order
+    single_vehicle: ScenarioMetrics  # Google-style
+    multi_vehicle: ScenarioMetrics  # Current result
+
+
 class OptimizationResult(BaseModel):
     success: bool
     message: str
@@ -108,6 +121,7 @@ class OptimizationResult(BaseModel):
     computation_time: float  # seconds
     cost_summary: Optional[CostSummary] = None
     savings_summary: Optional[SavingsSummary] = None
+    comparison_summary: Optional[ComparisonSummary] = None
 
 
 class UploadResponse(BaseModel):
