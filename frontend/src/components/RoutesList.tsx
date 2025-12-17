@@ -182,7 +182,15 @@ export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, 
                 </tr>
 
                 <tr style={{ backgroundColor: '#fff3e0' }}>
-                  <td style={{ padding: '8px' }}>🗺️ Single Vehicle (Google-style)</td>
+                  <td style={{ padding: '8px' }}>
+                    {result.comparison_summary.google_status === 'actual' ? (
+                      <>🗺️ Google Maps (Actual)</>
+                    ) : result.comparison_summary.google_status === 'limited' ? (
+                      <>🗺️ Google Maps (Partial)*</>
+                    ) : (
+                      <>🗺️ Single Vehicle (Estimated)</>
+                    )}
+                  </td>
                   <td style={{ textAlign: 'right', padding: '8px' }}>
                     {result.comparison_summary.single_vehicle.total_distance.toFixed(1)} km
                   </td>
@@ -216,6 +224,19 @@ export default function RoutesList({ result, selectedRouteIndex, onRouteSelect, 
                 </tr>
               </tbody>
             </table>
+            {result.comparison_summary.google_message && (
+              <div style={{
+                marginTop: '8px',
+                fontSize: '11px',
+                color: result.comparison_summary.google_status === 'actual' ? '#2e7d32' :
+                       result.comparison_summary.google_status === 'limited' ? '#f57c00' : '#666',
+                fontStyle: 'italic'
+              }}>
+                {result.comparison_summary.google_status === 'actual' && '✓ '}
+                {result.comparison_summary.google_status === 'limited' && '* '}
+                {result.comparison_summary.google_message}
+              </div>
+            )}
           </div>
 
           {/* Savings Section */}

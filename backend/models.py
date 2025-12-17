@@ -105,10 +105,19 @@ class ScenarioMetrics(BaseModel):
     total_cost: Optional[float] = None
 
 
+class GoogleComparisonStatus(str, Enum):
+    ACTUAL = "actual"  # Real Google Maps API data
+    ESTIMATED = "estimated"  # Fallback mock data (API failed or no key)
+    LIMITED = "limited"  # Partial data (>23 stops, only first 23 used)
+    NO_KEY = "no_key"  # API key not configured
+
+
 class ComparisonSummary(BaseModel):
     unoptimized: ScenarioMetrics  # CSV order
-    single_vehicle: ScenarioMetrics  # Google-style
+    single_vehicle: ScenarioMetrics  # Google-style (or actual Google)
     multi_vehicle: ScenarioMetrics  # Current result
+    google_status: GoogleComparisonStatus = GoogleComparisonStatus.ESTIMATED
+    google_message: Optional[str] = None  # Additional info about Google comparison
 
 
 class OptimizationResult(BaseModel):

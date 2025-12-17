@@ -8,6 +8,8 @@ Replace with actual NVIDIA cuOpt API calls when credentials are available.
 import math
 import time
 import random
+import os
+import httpx
 from typing import Optional
 from models import (
     OptimizationRequest,
@@ -20,11 +22,120 @@ from models import (
     SavingsSummary,
     ScenarioMetrics,
     ComparisonSummary,
+    GoogleComparisonStatus,
     Depot,
     Delivery,
     Vehicle,
     CostSettings,
 )
+
+
+# Google Maps API constants
+GOOGLE_MAPS_DIRECTIONS_URL = "https://maps.googleapis.com/maps/api/directions/json"
+GOOGLE_MAX_WAYPOINTS = 23  # 25 total - origin - destination
+
+
+def get_google_maps_route(
+    depot: Depot,
+    deliveries: list[Delivery],
+    api_key: str
+) -> tuple[Optional[float], Optional[int], GoogleComparisonStatus, Optional[str]]:
+    """
+    Call Google Maps Directions API to get optimized route for single vehicle.
+
+    Args:
+        depot: Starting/ending location
+        deliveries: List of delivery locations
+        api_key: Google Maps API key
+
+    Returns:
+        Tuple of (distance_km, time_minutes, status, message)
+    """
+    # Debug: Check if API key is loaded
+    if not api_key or not api_key.strip():
+        print("[Google API] ERROR: No API key found in environment")
+        return None, None, GoogleComparisonStatus.NO_KEY, "Google Maps API key not configured"
+
+    # Debug: Show masked API key
+    masked_key = api_key[:8] + "..." + api_key[-4:] if len(api_key) > 12 else "***"
+    print(f"[Google API] Using API key: {masked_key}")
+
+    if not deliveries:
+        return 0.0, 0, GoogleComparisonStatus.ACTUAL, None
+
+    # Check waypoint limit
+    stops_to_use = deliveries
+    status = GoogleComparisonStatus.ACTUAL
+    message = None
+
+    if len(deliveries) > GOOGLE_MAX_WAYPOINTS:
+        stops_to_use = deliveries[:GOOGLE_MAX_WAYPOINTS]
+        status = GoogleComparisonStatus.LIMITED
+        message = f"Google limited to {GOOGLE_MAX_WAYPOINTS} stops (you have {len(deliveries)})"
+
+    print(f"[Google API] Requesting route for {len(stops_to_use)} stops")
+
+    # Build waypoints string: optimize:true|lat1,lng1|lat2,lng2|...
+    waypoints_list = [f"{d.latitude},{d.longitude}" for d in stops_to_use]
+    waypoints = "optimize:true|" + "|".join(waypoints_list)
+
+    # API parameters
+    params = {
+        "origin": f"{depot.latitude},{depot.longitude}",
+        "destination": f"{depot.latitude},{depot.longitude}",
+        "waypoints": waypoints,
+        "key": api_key,
+    }
+
+    # Debug: Log request details (without full key)
+    print(f"[Google API] Origin: {params['origin']}")
+    print(f"[Google API] Destination: {params['destination']}")
+    print(f"[Google API] Waypoints count: {len(waypoints_list)}")
+
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            response = client.get(GOOGLE_MAPS_DIRECTIONS_URL, params=params)
+            data = response.json()
+
+            # Debug: Log full response status
+            print(f"[Google API] HTTP Status: {response.status_code}")
+            print(f"[Google API] Response status: {data.get('status')}")
+
+            if data.get("status") != "OK":
+                error_msg = data.get("error_message", data.get("status", "Unknown error"))
+                print(f"[Google API] ERROR: {error_msg}")
+                print(f"[Google API] Full response: {data}")
+                return None, None, GoogleComparisonStatus.ESTIMATED, f"Google API error: {error_msg}"
+
+        # Extract total distance and duration from all legs
+        routes = data.get("routes", [])
+        if not routes:
+            print("[Google API] ERROR: No routes in response")
+            return None, None, GoogleComparisonStatus.ESTIMATED, "No routes returned from Google"
+
+        route = routes[0]
+        legs = route.get("legs", [])
+
+        total_distance_m = sum(leg.get("distance", {}).get("value", 0) for leg in legs)
+        total_duration_s = sum(leg.get("duration", {}).get("value", 0) for leg in legs)
+
+        # Convert to km and minutes
+        distance_km = total_distance_m / 1000.0
+        time_minutes = int(total_duration_s / 60)
+
+        # Add service time for each delivery
+        service_time = sum(d.service_time for d in stops_to_use)
+        time_minutes += service_time
+
+        print(f"[Google API] SUCCESS: {distance_km:.1f} km, {time_minutes} min")
+        return distance_km, time_minutes, status, message
+
+    except httpx.HTTPError as e:
+        print(f"[Google API] HTTP ERROR: {str(e)}")
+        return None, None, GoogleComparisonStatus.ESTIMATED, f"Google API request failed: {str(e)}"
+    except Exception as e:
+        print(f"[Google API] EXCEPTION: {str(e)}")
+        return None, None, GoogleComparisonStatus.ESTIMATED, f"Google API error: {str(e)}"
 
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -231,12 +342,25 @@ class MockCuOptService:
         num_vehicles_used: int,
         cost_settings: Optional[CostSettings]
     ) -> ComparisonSummary:
-        """Build comparison with all three scenarios."""
+        """Build comparison with all three scenarios, using real Google Maps data when available."""
 
-        # Calculate single-vehicle optimized
-        single_distance, single_time = self._calculate_single_vehicle_optimized(
-            depot, deliveries, vehicles
+        # Try to get real Google Maps data
+        google_api_key = os.getenv("GOOGLE_MAPS_API_KEY", "")
+        google_distance, google_time, google_status, google_message = get_google_maps_route(
+            depot, deliveries, google_api_key
         )
+
+        # Use Google data if available, otherwise fall back to mock
+        if google_distance is not None and google_time is not None:
+            single_distance = google_distance
+            single_time = google_time
+        else:
+            # Fall back to mock nearest-neighbor calculation
+            single_distance, single_time = self._calculate_single_vehicle_optimized(
+                depot, deliveries, vehicles
+            )
+            if google_status == GoogleComparisonStatus.NO_KEY:
+                google_message = "Add GOOGLE_MAPS_API_KEY to .env for real comparison"
 
         # Build metrics
         unoptimized = ScenarioMetrics(
@@ -270,7 +394,9 @@ class MockCuOptService:
         return ComparisonSummary(
             unoptimized=unoptimized,
             single_vehicle=single_vehicle,
-            multi_vehicle=multi_vehicle
+            multi_vehicle=multi_vehicle,
+            google_status=google_status,
+            google_message=google_message
         )
 
     def _mock_optimize(self, request: OptimizationRequest) -> OptimizationResult:

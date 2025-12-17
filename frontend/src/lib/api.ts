@@ -104,10 +104,14 @@ export interface ScenarioMetrics {
   total_cost?: number;
 }
 
+export type GoogleComparisonStatus = 'actual' | 'estimated' | 'limited' | 'no_key';
+
 export interface ComparisonSummary {
   unoptimized: ScenarioMetrics;
   single_vehicle: ScenarioMetrics;
   multi_vehicle: ScenarioMetrics;
+  google_status: GoogleComparisonStatus;
+  google_message?: string;
 }
 
 export interface OptimizationResult {

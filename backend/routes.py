@@ -22,6 +22,7 @@ from models import (
     CompanySettings,
     RouteHistoryEntry,
     ComparisonSummary,
+    GoogleComparisonStatus,
 )
 from cuopt_service import get_cuopt_service, MockCuOptService
 from routing_service import get_route_geometries
@@ -307,6 +308,14 @@ async def export_routes_pdf(request: PDFExportRequest):
 
         # Build comparison table
         comp = request.comparison_summary
+        # Determine Google label based on status
+        if comp.google_status == GoogleComparisonStatus.ACTUAL:
+            google_label = "Google Maps (Actual)"
+        elif comp.google_status == GoogleComparisonStatus.LIMITED:
+            google_label = "Google Maps (Partial)*"
+        else:
+            google_label = "Single Vehicle (Estimated)"
+
         comparison_data = [
             ["Scenario", "Distance", "Time", "Vehicles", "Cost"],
             [
@@ -317,7 +326,7 @@ async def export_routes_pdf(request: PDFExportRequest):
                 f"${comp.unoptimized.total_cost:.2f}" if comp.unoptimized.total_cost else "-"
             ],
             [
-                "Single Vehicle (Google-style)",
+                google_label,
                 f"{comp.single_vehicle.total_distance:.1f} km",
                 f"{comp.single_vehicle.total_time} min",
                 "Still just 1",
@@ -346,6 +355,12 @@ async def export_routes_pdf(request: PDFExportRequest):
             ('PADDING', (0, 0), (-1, -1), 6),
         ]))
         elements.append(comparison_table)
+
+        # Add Google status note if applicable
+        if comp.google_message:
+            note_text = f"* {comp.google_message}" if comp.google_status == GoogleComparisonStatus.LIMITED else comp.google_message
+            elements.append(Paragraph(note_text, small_style))
+
         elements.append(Spacer(1, 0.3*inch))
 
         # Savings
