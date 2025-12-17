@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Depot, Delivery, Route } from '@/lib/api';
+import type { Depot, Delivery, Route, RoadGeometry } from '@/lib/api';
+import { getRoadGeometries } from '@/lib/api';
 
 interface MapViewProps {
   depot?: Depot;
   deliveries: Delivery[];
   routes: Route[];
   selectedRouteIndex?: number;
+  orsApiKey?: string;
 }
 
 const ROUTE_COLORS = [
@@ -19,12 +21,54 @@ const ROUTE_COLORS = [
   '#f781bf',
 ];
 
-export default function MapView({ depot, deliveries, routes, selectedRouteIndex }: MapViewProps) {
+// Decode Google-style encoded polyline
+function decodePolyline(encoded: string): [number, number][] {
+  const points: [number, number][] = [];
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+
+  while (index < encoded.length) {
+    let b: number;
+    let shift = 0;
+    let result = 0;
+
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    const dlat = result & 1 ? ~(result >> 1) : result >> 1;
+    lat += dlat;
+
+    shift = 0;
+    result = 0;
+
+    do {
+      b = encoded.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+
+    const dlng = result & 1 ? ~(result >> 1) : result >> 1;
+    lng += dlng;
+
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+
+  return points;
+}
+
+export default function MapView({ depot, deliveries, routes, selectedRouteIndex, orsApiKey }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markersLayerRef = useRef<L.LayerGroup | null>(null);
   const polylinesLayerRef = useRef<L.LayerGroup | null>(null);
   const [leaflet, setLeaflet] = useState<typeof import('leaflet') | null>(null);
+  const [roadGeometries, setRoadGeometries] = useState<RoadGeometry[]>([]);
+  const [loadingRoads, setLoadingRoads] = useState(false);
+  const [roadError, setRoadError] = useState<string | null>(null);
 
   // Initialize Leaflet and map once
   useEffect(() => {
@@ -84,6 +128,49 @@ export default function MapView({ depot, deliveries, routes, selectedRouteIndex 
     };
   }, [leaflet]);
 
+  // Fetch road geometries when routes change.
+  // If `orsApiKey` is blank, the backend can still use `ORS_API_KEY` from its environment.
+  useEffect(() => {
+    if (routes.length === 0 || !depot) {
+      setRoadGeometries([]);
+      setRoadError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingRoads(true);
+    setRoadError(null);
+
+    const trimmedKey = orsApiKey?.trim();
+
+    getRoadGeometries(routes, depot, trimmedKey || undefined)
+      .then((response) => {
+        if (cancelled) return;
+        if (response.success) {
+          setRoadGeometries(response.geometries);
+          setRoadError(null);
+          return;
+        }
+
+        setRoadGeometries([]);
+        setRoadError(response.error || 'Failed to load road routes');
+      })
+      .catch((err) => {
+        console.error('Failed to get road geometries:', err);
+        if (!cancelled) {
+          setRoadGeometries([]);
+          setRoadError(err instanceof Error ? err.message : String(err));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingRoads(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [routes, depot, orsApiKey]);
+
   // Update markers and routes when data changes
   useEffect(() => {
     if (!leaflet || !mapRef.current || !markersLayerRef.current || !polylinesLayerRef.current) return;
@@ -122,17 +209,44 @@ export default function MapView({ depot, deliveries, routes, selectedRouteIndex 
         const isSelected = selectedRouteIndex === undefined || selectedRouteIndex === routeIndex;
         const opacity = isSelected ? 1 : 0.3;
 
-        // Create route polyline
-        const points: [number, number][] = [];
-        if (depot) {
-          points.push([depot.latitude, depot.longitude]);
+        // Check if we have road geometry for this route
+        const roadGeom = roadGeometries.find((g) => g.vehicle_id === route.vehicle_id);
+
+        if (roadGeom?.geometry) {
+          // Use real road path
+          const roadPoints = decodePolyline(roadGeom.geometry);
+          L.polyline(roadPoints, {
+            color,
+            weight: 4,
+            opacity: opacity * 0.8,
+          }).addTo(polylinesLayer);
+        } else {
+          // Fall back to straight lines
+          const points: [number, number][] = [];
+          if (depot) {
+            points.push([depot.latitude, depot.longitude]);
+          }
+
+          route.stops.forEach((stop) => {
+            points.push([stop.location.latitude, stop.location.longitude]);
+          });
+
+          if (depot) {
+            points.push([depot.latitude, depot.longitude]);
+          }
+
+          L.polyline(points, {
+            color,
+            weight: 4,
+            opacity: opacity * 0.8,
+            dashArray: roadGeometries.length > 0 ? '5, 10' : undefined, // Dashed if others have roads
+          }).addTo(polylinesLayer);
         }
 
+        // Add stop markers
         route.stops.forEach((stop, stopIndex) => {
-          points.push([stop.location.latitude, stop.location.longitude]);
           bounds.push([stop.location.latitude, stop.location.longitude]);
 
-          // Add numbered marker
           const numberIcon = L.divIcon({
             html: `<div style="background:${color};color:#fff;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:12px;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">${stopIndex + 1}</div>`,
             className: 'number-marker',
@@ -154,17 +268,6 @@ export default function MapView({ depot, deliveries, routes, selectedRouteIndex 
             .bindPopup(popupContent)
             .addTo(markersLayer);
         });
-
-        // Return to depot
-        if (depot) {
-          points.push([depot.latitude, depot.longitude]);
-        }
-
-        L.polyline(points, {
-          color,
-          weight: 4,
-          opacity: opacity * 0.8,
-        }).addTo(polylinesLayer);
       });
     } else {
       // Just show delivery points
@@ -192,7 +295,7 @@ export default function MapView({ depot, deliveries, routes, selectedRouteIndex 
         // Ignore fitBounds errors
       }
     }
-  }, [leaflet, depot, deliveries, routes, selectedRouteIndex]);
+  }, [leaflet, depot, deliveries, routes, selectedRouteIndex, roadGeometries]);
 
   return (
     <>
@@ -201,6 +304,40 @@ export default function MapView({ depot, deliveries, routes, selectedRouteIndex 
         href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
       />
       <div ref={mapContainerRef} style={{ width: '100%', height: '100%', minHeight: '400px' }} />
+      {loadingRoads && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0,0,0,0.7)',
+          color: '#fff',
+          padding: '8px 16px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          zIndex: 1000,
+        }}>
+          Loading road routes...
+        </div>
+      )}
+      {roadError && !loadingRoads && (
+        <div style={{
+          position: 'absolute',
+          top: '10px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(244,67,54,0.92)',
+          color: '#fff',
+          padding: '8px 12px',
+          borderRadius: '4px',
+          fontSize: '12px',
+          zIndex: 1000,
+          maxWidth: 'min(680px, 90vw)',
+          textAlign: 'center',
+        }}>
+          Road routes unavailable: {roadError}
+        </div>
+      )}
     </>
   );
 }

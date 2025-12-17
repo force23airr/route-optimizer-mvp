@@ -249,3 +249,38 @@ export async function deleteRouteHistory(entryId: string): Promise<{ success: bo
   }
   return response.json();
 }
+
+export interface RoadGeometry {
+  vehicle_id: string;
+  geometry: string | null;
+  road_distance?: number;
+  road_duration?: number;
+  error?: string;
+}
+
+export async function getRoadGeometries(
+  routes: Route[],
+  depot: Depot,
+  apiKey?: string
+): Promise<{ success: boolean; geometries: RoadGeometry[]; error?: string }> {
+  const response = await fetch(`${API_BASE}/road-geometry`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ routes, depot, api_key: apiKey }),
+  });
+
+  if (!response.ok) {
+    let detail = 'Failed to get road geometries';
+    try {
+      const error = await response.json();
+      detail = error.detail || error.error || detail;
+    } catch {
+      // ignore
+    }
+    throw new Error(detail);
+  }
+
+  return response.json();
+}

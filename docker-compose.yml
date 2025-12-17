@@ -13,6 +13,7 @@ services:
       - DEBUG=false
       - CORS_ORIGINS=http://localhost:3000,http://frontend:3000
       - CUOPT_API_KEY=${CUOPT_API_KEY:-}
+      - ORS_API_KEY=${ORS_API_KEY:-}
     volumes:
       - ./backend:/app
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload

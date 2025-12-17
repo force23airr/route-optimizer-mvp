@@ -3,6 +3,8 @@ Route Optimizer MVP - FastAPI Backend
 """
 
 import os
+from pathlib import Path
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,14 +12,23 @@ from dotenv import load_dotenv
 
 from routes import router
 
-# Load environment variables
-load_dotenv()
+# Load environment variables (relative to this file, not the current working directory)
+env_dir = Path(__file__).resolve().parent
+load_dotenv(env_dir / ".env.local")
+load_dotenv(env_dir / ".env")
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     print("Starting Route Optimizer API...")
+    try:
+        api_paths = sorted({getattr(r, "path", "") for r in app.routes if getattr(r, "path", "").startswith("/api/")})
+        logger.info("Registered API routes: %s", ", ".join(api_paths))
+    except Exception:
+        logger.exception("Failed to enumerate routes at startup")
     yield
     print("Shutting down Route Optimizer API...")
 

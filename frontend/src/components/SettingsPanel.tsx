@@ -6,11 +6,13 @@ interface SettingsPanelProps {
   objective: 'minimize_distance' | 'minimize_time' | 'balance_routes';
   costSettings: CostSettings;
   companySettings: CompanySettings;
+  orsApiKey: string;
   onDepotChange: (depot: Depot) => void;
   onVehiclesChange: (vehicles: Vehicle[]) => void;
   onObjectiveChange: (objective: 'minimize_distance' | 'minimize_time' | 'balance_routes') => void;
   onCostSettingsChange: (costSettings: CostSettings) => void;
   onCompanySettingsChange: (companySettings: CompanySettings) => void;
+  onOrsApiKeyChange: (key: string) => void;
   onOptimize: () => void;
   isOptimizing: boolean;
   hasDeliveries: boolean;
@@ -22,11 +24,13 @@ export default function SettingsPanel({
   objective,
   costSettings,
   companySettings,
+  orsApiKey,
   onDepotChange,
   onVehiclesChange,
   onObjectiveChange,
   onCostSettingsChange,
   onCompanySettingsChange,
+  onOrsApiKeyChange,
   onOptimize,
   isOptimizing,
   hasDeliveries,
@@ -201,6 +205,34 @@ export default function SettingsPanel({
               }}
             />
           </div>
+        </div>
+      </section>
+
+      {/* Road Routes API */}
+      <section style={{ marginBottom: '24px' }}>
+        <h3 style={{ marginBottom: '12px', fontSize: '16px' }}>Road Routes (Optional)</h3>
+        <div>
+          <label style={{ display: 'block', fontSize: '12px', color: '#666', marginBottom: '4px' }}>
+            OpenRouteService API Key
+          </label>
+          <input
+            type="password"
+            value={orsApiKey}
+            onChange={(e) => onOrsApiKeyChange(e.target.value)}
+            placeholder="Enter ORS API key for road paths"
+            style={{
+              width: '100%',
+              padding: '8px',
+              border: '1px solid #ddd',
+              borderRadius: '4px',
+            }}
+          />
+          <p style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+            Leave blank to use the backend&apos;s <code>ORS_API_KEY</code>. Free key at{' '}
+            <a href="https://openrouteservice.org/dev/#/signup" target="_blank" rel="noopener noreferrer" style={{ color: '#1976d2' }}>
+              openrouteservice.org
+            </a>
+          </p>
         </div>
       </section>
 

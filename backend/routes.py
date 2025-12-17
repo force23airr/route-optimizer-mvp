@@ -23,6 +23,7 @@ from models import (
     RouteHistoryEntry,
 )
 from cuopt_service import get_cuopt_service, MockCuOptService
+from routing_service import get_route_geometries
 import json
 import os
 import uuid
@@ -35,6 +36,16 @@ from email import encoders
 
 router = APIRouter()
 
+
+@router.get("/ping")
+async def ping():
+    return {"pong": True}
+
+
+class RoadRouteRequest(BaseModel):
+    routes: list[Route]
+    depot: Depot
+    api_key: Optional[str] = None
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
@@ -547,3 +558,19 @@ async def delete_route_history_entry(entry_id: str):
         raise HTTPException(status_code=404, detail="History entry not found")
     os.remove(filepath)
     return {"success": True}
+
+
+@router.post("/road-geometry")
+async def get_road_geometries(request: RoadRouteRequest):
+    """
+    Get actual road geometries for optimized routes using OpenRouteService.
+    Returns encoded polylines that can be drawn on the map.
+    """
+    try:
+        routes_dict = [r.model_dump() for r in request.routes]
+        depot_dict = request.depot.model_dump()
+
+        geometries = await get_route_geometries(routes_dict, depot_dict, request.api_key)
+        return {"success": True, "geometries": geometries}
+    except Exception as e:
+        return {"success": False, "error": str(e), "geometries": []}

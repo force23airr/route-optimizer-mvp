@@ -90,7 +90,10 @@ PORT=8000
 DEBUG=true
 CORS_ORIGINS=http://localhost:3000
 CUOPT_API_KEY=  # Optional: Add for real cuOpt
+ORS_API_KEY=    # Optional: OpenRouteService road geometries
 ```
+
+Tip: for secrets, create `backend/.env.local` (gitignored) and put `ORS_API_KEY=...` there.
 
 ### Optimization Objectives
 

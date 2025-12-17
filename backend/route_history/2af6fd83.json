@@ -1,0 +1,740 @@
+{
+  "id": "2af6fd83",
+  "timestamp": "2025-12-16T16:46:56.725050",
+  "depot": {
+    "latitude": 25.72590952380952,
+    "longitude": -80.25323333333331,
+    "address": null,
+    "id": "depot",
+    "name": "Depot"
+  },
+  "total_deliveries": 42,
+  "total_routes": 5,
+  "total_distance": 231.15,
+  "total_time": 965,
+  "total_cost": 486.11,
+  "routes": [
+    {
+      "vehicle_id": "vehicle_1",
+      "vehicle_name": "Vehicle 1",
+      "stops": [
+        {
+          "sequence": 1,
+          "delivery_id": "d13",
+          "location": {
+            "latitude": 25.727,
+            "longitude": -80.242,
+            "address": "3390 Mary St"
+          },
+          "customer_name": "Coconut Grove Gallery",
+          "customer_phone": "(305) 555-0113",
+          "arrival_time": "10:00",
+          "departure_time": "10:05",
+          "cumulative_distance": 1.13,
+          "cumulative_load": 7.0,
+          "directions": "Head east, then north for 0.7 miles"
+        },
+        {
+          "sequence": 2,
+          "delivery_id": "d15",
+          "location": {
+            "latitude": 25.7291,
+            "longitude": -80.2419,
+            "address": "3015 Grand Ave"
+          },
+          "customer_name": "Cocowalk Shopping",
+          "customer_phone": "(305) 555-0115",
+          "arrival_time": "10:05",
+          "departure_time": "10:10",
+          "cumulative_distance": 1.37,
+          "cumulative_load": 19.0,
+          "directions": "Head north for 0.1 miles"
+        },
+        {
+          "sequence": 3,
+          "delivery_id": "d36",
+          "location": {
+            "latitude": 25.7389,
+            "longitude": -80.2558,
+            "address": "6855 Edgewater Dr"
+          },
+          "customer_name": "Gables Waterway",
+          "customer_phone": "(305) 555-0136",
+          "arrival_time": "10:12",
+          "departure_time": "10:17",
+          "cumulative_distance": 3.13,
+          "cumulative_load": 25.0,
+          "directions": "Head west, then north for 1.1 miles"
+        },
+        {
+          "sequence": 4,
+          "delivery_id": "d6",
+          "location": {
+            "latitude": 25.7401,
+            "longitude": -80.2619,
+            "address": "358 San Lorenzo Ave"
+          },
+          "customer_name": "Merrick Park Mall",
+          "customer_phone": "(305) 555-0106",
+          "arrival_time": "10:17",
+          "departure_time": "10:22",
+          "cumulative_distance": 3.76,
+          "cumulative_load": 35.0,
+          "directions": "Head west, then north for 0.4 miles"
+        },
+        {
+          "sequence": 5,
+          "delivery_id": "d7",
+          "location": {
+            "latitude": 25.7489,
+            "longitude": -80.2618,
+            "address": "3443 Segovia St"
+          },
+          "customer_name": "Coral Gables Library",
+          "customer_phone": "(305) 555-0107",
+          "arrival_time": "10:23",
+          "departure_time": "10:28",
+          "cumulative_distance": 4.74,
+          "cumulative_load": 40.0,
+          "directions": "Head north for 0.6 miles"
+        },
+        {
+          "sequence": 6,
+          "delivery_id": "d2",
+          "location": {
+            "latitude": 25.7496,
+            "longitude": -80.2624,
+            "address": "405 Biltmore Way"
+          },
+          "customer_name": "Coral Gables City Hall",
+          "customer_phone": "(305) 555-0102",
+          "arrival_time": "10:28",
+          "departure_time": "10:38",
+          "cumulative_distance": 4.84,
+          "cumulative_load": 52.0,
+          "directions": "Head north for 0.1 miles"
+        },
+        {
+          "sequence": 7,
+          "delivery_id": "d34",
+          "location": {
+            "latitude": 25.7503,
+            "longitude": -80.2598,
+            "address": "285 Aragon Ave"
+          },
+          "customer_name": "Coral Gables Museum",
+          "customer_phone": "(305) 555-0134",
+          "arrival_time": "10:38",
+          "departure_time": "10:43",
+          "cumulative_distance": 5.11,
+          "cumulative_load": 56.0,
+          "directions": "Head east for 0.2 miles"
+        },
+        {
+          "sequence": 8,
+          "delivery_id": "d1",
+          "location": {
+            "latitude": 25.7498,
+            "longitude": -80.2589,
+            "address": "358 Miracle Mile"
+          },
+          "customer_name": "Miracle Mile Shop",
+          "customer_phone": "(305) 555-0101",
+          "arrival_time": "10:43",
+          "departure_time": "10:48",
+          "cumulative_distance": 5.21,
+          "cumulative_load": 64.0,
+          "directions": "Head east for 0.1 miles"
+        },
+        {
+          "sequence": 9,
+          "delivery_id": "d35",
+          "location": {
+            "latitude": 25.7496,
+            "longitude": -80.2577,
+            "address": "265 Aragon Ave"
+          },
+          "customer_name": "Books & Books",
+          "customer_phone": "(305) 555-0135",
+          "arrival_time": "10:48",
+          "departure_time": "10:53",
+          "cumulative_distance": 5.34,
+          "cumulative_load": 67.0,
+          "directions": "Head east for 0.1 miles"
+        },
+        {
+          "sequence": 10,
+          "delivery_id": "d10",
+          "location": {
+            "latitude": 25.7563,
+            "longitude": -80.2536,
+            "address": "800 Douglas Rd"
+          },
+          "customer_name": "Douglas Entrance",
+          "customer_phone": "(305) 555-0110",
+          "arrival_time": "10:54",
+          "departure_time": "10:59",
+          "cumulative_distance": 6.19,
+          "cumulative_load": 76.0,
+          "directions": "Head north, then east for 0.5 miles"
+        },
+        {
+          "sequence": 11,
+          "delivery_id": "d11",
+          "location": {
+            "latitude": 25.7509,
+            "longitude": -80.2485,
+            "address": "2500 Coral Way"
+          },
+          "customer_name": "Coral Way Restaurant",
+          "customer_phone": "(305) 555-0111",
+          "arrival_time": "11:00",
+          "departure_time": "11:05",
+          "cumulative_distance": 6.97,
+          "cumulative_load": 82.0,
+          "directions": "Head south, then east for 0.5 miles"
+        },
+        {
+          "sequence": 12,
+          "delivery_id": "d3",
+          "location": {
+            "latitude": 25.7514,
+            "longitude": -80.2731,
+            "address": "2701 De Soto Blvd"
+          },
+          "customer_name": "Venetian Pool Area",
+          "customer_phone": "(305) 555-0103",
+          "arrival_time": "11:08",
+          "departure_time": "11:13",
+          "cumulative_distance": 9.44,
+          "cumulative_load": 88.0,
+          "directions": "Head west for 1.5 miles"
+        },
+        {
+          "sequence": 13,
+          "delivery_id": "d12",
+          "location": {
+            "latitude": 25.758,
+            "longitude": -80.2782,
+            "address": "2001 Granada Blvd"
+          },
+          "customer_name": "Granada Golf Course",
+          "customer_phone": "(305) 555-0112",
+          "arrival_time": "11:14",
+          "departure_time": "11:24",
+          "cumulative_distance": 10.33,
+          "cumulative_load": 99.0,
+          "directions": "Head north, then west for 0.6 miles"
+        }
+      ],
+      "total_distance": 14.69,
+      "total_time": 210,
+      "total_load": 99.0,
+      "utilization": 99.0
+    },
+    {
+      "vehicle_id": "vehicle_2",
+      "vehicle_name": "Vehicle 2",
+      "stops": [
+        {
+          "sequence": 1,
+          "delivery_id": "d9",
+          "location": {
+            "latitude": 25.7318,
+            "longitude": -80.2695,
+            "address": "1155 Blue Rd"
+          },
+          "customer_name": "Riviera Country Club",
+          "customer_phone": "(305) 555-0109",
+          "arrival_time": "08:02",
+          "departure_time": "08:07",
+          "cumulative_distance": 1.76,
+          "cumulative_load": 7.0,
+          "directions": "Head west, then north for 1.1 miles"
+        },
+        {
+          "sequence": 2,
+          "delivery_id": "d4",
+          "location": {
+            "latitude": 25.7429,
+            "longitude": -80.2757,
+            "address": "1200 Anastasia Ave"
+          },
+          "customer_name": "Biltmore Hotel",
+          "customer_phone": "(305) 555-0104",
+          "arrival_time": "08:09",
+          "departure_time": "08:19",
+          "cumulative_distance": 3.14,
+          "cumulative_load": 22.0,
+          "directions": "Head north, then west for 0.9 miles"
+        },
+        {
+          "sequence": 3,
+          "delivery_id": "d5",
+          "location": {
+            "latitude": 25.7215,
+            "longitude": -80.2794,
+            "address": "1320 S Dixie Hwy"
+          },
+          "customer_name": "University of Miami",
+          "customer_phone": "(305) 555-0105",
+          "arrival_time": "09:00",
+          "departure_time": "09:15",
+          "cumulative_distance": 5.55,
+          "cumulative_load": 42.0,
+          "directions": "Head south, then west for 1.5 miles"
+        },
+        {
+          "sequence": 4,
+          "delivery_id": "d38",
+          "location": {
+            "latitude": 25.7081,
+            "longitude": -80.2903,
+            "address": "5701 Sunset Dr"
+          },
+          "customer_name": "Sunset Place",
+          "customer_phone": "(305) 555-0138",
+          "arrival_time": "10:00",
+          "departure_time": "10:05",
+          "cumulative_distance": 7.39,
+          "cumulative_load": 51.0,
+          "directions": "Head south, then west for 1.1 miles"
+        },
+        {
+          "sequence": 5,
+          "delivery_id": "d37",
+          "location": {
+            "latitude": 25.7074,
+            "longitude": -80.2933,
+            "address": "6200 SW 73rd St"
+          },
+          "customer_name": "South Miami Hospital",
+          "customer_phone": "(305) 555-0137",
+          "arrival_time": "10:05",
+          "departure_time": "10:15",
+          "cumulative_distance": 7.7,
+          "cumulative_load": 63.0,
+          "directions": "Head west for 0.2 miles"
+        },
+        {
+          "sequence": 6,
+          "delivery_id": "d29",
+          "location": {
+            "latitude": 25.6912,
+            "longitude": -80.3141,
+            "address": "7535 N Kendall Dr"
+          },
+          "customer_name": "Dadeland Mall",
+          "customer_phone": "(305) 555-0129",
+          "arrival_time": "10:19",
+          "departure_time": "10:29",
+          "cumulative_distance": 10.46,
+          "cumulative_load": 79.0,
+          "directions": "Head west, then south for 1.7 miles"
+        },
+        {
+          "sequence": 7,
+          "delivery_id": "d30",
+          "location": {
+            "latitude": 25.6672,
+            "longitude": -80.3068,
+            "address": "11000 Red Rd"
+          },
+          "customer_name": "Pinecrest Gardens",
+          "customer_phone": "(305) 555-0130",
+          "arrival_time": "10:33",
+          "departure_time": "10:38",
+          "cumulative_distance": 13.23,
+          "cumulative_load": 85.0,
+          "directions": "Head south, then east for 1.7 miles"
+        },
+        {
+          "sequence": 8,
+          "delivery_id": "d8",
+          "location": {
+            "latitude": 25.6768,
+            "longitude": -80.2742,
+            "address": "10901 Old Cutler Rd"
+          },
+          "customer_name": "Fairchild Garden",
+          "customer_phone": "(305) 555-0108",
+          "arrival_time": "10:43",
+          "departure_time": "10:53",
+          "cumulative_distance": 16.66,
+          "cumulative_load": 93.0,
+          "directions": "Head east, then north for 2.1 miles"
+        },
+        {
+          "sequence": 9,
+          "delivery_id": "d39",
+          "location": {
+            "latitude": 25.6804,
+            "longitude": -80.2636,
+            "address": "9610 Old Cutler Rd"
+          },
+          "customer_name": "Matheson Hammock",
+          "customer_phone": "(305) 555-0139",
+          "arrival_time": "10:54",
+          "departure_time": "10:59",
+          "cumulative_distance": 17.8,
+          "cumulative_load": 98.0,
+          "directions": "Head east, then north for 0.7 miles"
+        }
+      ],
+      "total_distance": 22.96,
+      "total_time": 186,
+      "total_load": 98.0,
+      "utilization": 98.0
+    },
+    {
+      "vehicle_id": "vehicle_3",
+      "vehicle_name": "Vehicle 3",
+      "stops": [
+        {
+          "sequence": 1,
+          "delivery_id": "d14",
+          "location": {
+            "latitude": 25.7444,
+            "longitude": -80.2106,
+            "address": "3251 S Miami Ave"
+          },
+          "customer_name": "Vizcaya Museum",
+          "customer_phone": "(305) 555-0114",
+          "arrival_time": "09:00",
+          "departure_time": "09:10",
+          "cumulative_distance": 4.74,
+          "cumulative_load": 9.0,
+          "directions": "Head east, then north for 2.9 miles"
+        },
+        {
+          "sequence": 2,
+          "delivery_id": "d20",
+          "location": {
+            "latitude": 25.7655,
+            "longitude": -80.2194,
+            "address": "1600 SW 8th St"
+          },
+          "customer_name": "Little Havana Cafe",
+          "customer_phone": "(305) 555-0120",
+          "arrival_time": "09:13",
+          "departure_time": "09:18",
+          "cumulative_distance": 7.25,
+          "cumulative_load": 14.0,
+          "directions": "Head north, then west for 1.6 miles"
+        },
+        {
+          "sequence": 3,
+          "delivery_id": "d21",
+          "location": {
+            "latitude": 25.7781,
+            "longitude": -80.2196,
+            "address": "501 Marlins Way"
+          },
+          "customer_name": "Marlins Park Area",
+          "customer_phone": "(305) 555-0121",
+          "arrival_time": "09:20",
+          "departure_time": "09:30",
+          "cumulative_distance": 8.65,
+          "cumulative_load": 28.0,
+          "directions": "Head north for 0.9 miles"
+        },
+        {
+          "sequence": 4,
+          "delivery_id": "d16",
+          "location": {
+            "latitude": 25.7654,
+            "longitude": -80.1932,
+            "address": "701 S Miami Ave"
+          },
+          "customer_name": "Brickell City Centre",
+          "customer_phone": "(305) 555-0116",
+          "arrival_time": "09:34",
+          "departure_time": "09:44",
+          "cumulative_distance": 11.64,
+          "cumulative_load": 43.0,
+          "directions": "Head east, then south for 1.9 miles"
+        },
+        {
+          "sequence": 5,
+          "delivery_id": "d17",
+          "location": {
+            "latitude": 25.7784,
+            "longitude": -80.1867,
+            "address": "401 Biscayne Blvd"
+          },
+          "customer_name": "Bayside Marketplace",
+          "customer_phone": "(305) 555-0117",
+          "arrival_time": "09:46",
+          "departure_time": "09:56",
+          "cumulative_distance": 13.23,
+          "cumulative_load": 61.0,
+          "directions": "Head north, then east for 1.0 miles"
+        },
+        {
+          "sequence": 6,
+          "delivery_id": "d26",
+          "location": {
+            "latitude": 25.8012,
+            "longitude": -80.1868,
+            "address": "2000 Biscayne Blvd"
+          },
+          "customer_name": "Edgewater Apt",
+          "customer_phone": "(305) 555-0126",
+          "arrival_time": "09:59",
+          "departure_time": "10:04",
+          "cumulative_distance": 15.76,
+          "cumulative_load": 70.0,
+          "directions": "Head north for 1.6 miles"
+        },
+        {
+          "sequence": 7,
+          "delivery_id": "d25",
+          "location": {
+            "latitude": 25.8089,
+            "longitude": -80.1917,
+            "address": "3401 N Miami Ave"
+          },
+          "customer_name": "Midtown Miami",
+          "customer_phone": "(305) 555-0125",
+          "arrival_time": "10:05",
+          "departure_time": "10:10",
+          "cumulative_distance": 16.75,
+          "cumulative_load": 77.0,
+          "directions": "Head north, then west for 0.6 miles"
+        },
+        {
+          "sequence": 8,
+          "delivery_id": "d19",
+          "location": {
+            "latitude": 25.8133,
+            "longitude": -80.1925,
+            "address": "140 NE 39th St"
+          },
+          "customer_name": "Design District",
+          "customer_phone": "(305) 555-0119",
+          "arrival_time": "10:10",
+          "departure_time": "10:15",
+          "cumulative_distance": 17.25,
+          "cumulative_load": 85.0,
+          "directions": "Head north for 0.3 miles"
+        },
+        {
+          "sequence": 9,
+          "delivery_id": "d18",
+          "location": {
+            "latitude": 25.8011,
+            "longitude": -80.1996,
+            "address": "2520 NW 2nd Ave"
+          },
+          "customer_name": "Wynwood Walls",
+          "customer_phone": "(305) 555-0118",
+          "arrival_time": "11:00",
+          "departure_time": "11:05",
+          "cumulative_distance": 18.78,
+          "cumulative_load": 91.0,
+          "directions": "Head south, then west for 1.0 miles"
+        },
+        {
+          "sequence": 10,
+          "delivery_id": "d23",
+          "location": {
+            "latitude": 25.7826,
+            "longitude": -80.1305,
+            "address": "888 Ocean Dr"
+          },
+          "customer_name": "South Beach Ocean Dr",
+          "customer_phone": "(305) 555-0123",
+          "arrival_time": "11:15",
+          "departure_time": "11:20",
+          "cumulative_distance": 26.0,
+          "cumulative_load": 99.0,
+          "directions": "Head east, then south for 4.5 miles"
+        }
+      ],
+      "total_distance": 39.81,
+      "total_time": 220,
+      "total_load": 99.0,
+      "utilization": 99.0
+    },
+    {
+      "vehicle_id": "vehicle_4",
+      "vehicle_name": "Vehicle 4",
+      "stops": [
+        {
+          "sequence": 1,
+          "delivery_id": "d27",
+          "location": {
+            "latitude": 25.7959,
+            "longitude": -80.287,
+            "address": "2051 NW LeJeune Rd"
+          },
+          "customer_name": "MIA Airport Hotel",
+          "customer_phone": "(305) 555-0127",
+          "arrival_time": "08:12",
+          "departure_time": "08:22",
+          "cumulative_distance": 8.49,
+          "cumulative_load": 20.0,
+          "directions": "Head north, then west for 5.3 miles"
+        },
+        {
+          "sequence": 2,
+          "delivery_id": "d28",
+          "location": {
+            "latitude": 25.8195,
+            "longitude": -80.3395,
+            "address": "4400 NW 87th Ave"
+          },
+          "customer_name": "Doral Golf Resort",
+          "customer_phone": "(305) 555-0128",
+          "arrival_time": "08:30",
+          "departure_time": "08:40",
+          "cumulative_distance": 14.36,
+          "cumulative_load": 33.0,
+          "directions": "Head west, then north for 3.7 miles"
+        },
+        {
+          "sequence": 3,
+          "delivery_id": "d40",
+          "location": {
+            "latitude": 25.6473,
+            "longitude": -80.2778,
+            "address": "13600 Old Cutler Rd"
+          },
+          "customer_name": "Chapman Field",
+          "customer_phone": "(305) 555-0140",
+          "arrival_time": "09:10",
+          "departure_time": "09:15",
+          "cumulative_distance": 34.48,
+          "cumulative_load": 40.0,
+          "directions": "Head south, then east for 12.5 miles"
+        },
+        {
+          "sequence": 4,
+          "delivery_id": "d41",
+          "location": {
+            "latitude": 25.6145,
+            "longitude": -80.3069,
+            "address": "16701 SW 72nd Ave"
+          },
+          "customer_name": "Deering Estate",
+          "customer_phone": "(305) 555-0141",
+          "arrival_time": "10:00",
+          "departure_time": "10:10",
+          "cumulative_distance": 39.15,
+          "cumulative_load": 48.0,
+          "directions": "Head south, then west for 2.9 miles"
+        },
+        {
+          "sequence": 5,
+          "delivery_id": "d42",
+          "location": {
+            "latitude": 25.5118,
+            "longitude": -80.3284,
+            "address": "24775 SW 87th Ave"
+          },
+          "customer_name": "Black Point Marina",
+          "customer_phone": "(305) 555-0142",
+          "arrival_time": "10:27",
+          "departure_time": "10:37",
+          "cumulative_distance": 50.77,
+          "cumulative_load": 59.0,
+          "directions": "Head south, then west for 7.2 miles"
+        },
+        {
+          "sequence": 6,
+          "delivery_id": "d31",
+          "location": {
+            "latitude": 25.5061,
+            "longitude": -80.4018,
+            "address": "12400 SW 152nd St"
+          },
+          "customer_name": "Zoo Miami",
+          "customer_phone": "(305) 555-0131",
+          "arrival_time": "10:48",
+          "departure_time": "11:03",
+          "cumulative_distance": 58.17,
+          "cumulative_load": 69.0,
+          "directions": "Head west, then south for 4.6 miles"
+        },
+        {
+          "sequence": 7,
+          "delivery_id": "d32",
+          "location": {
+            "latitude": 25.4522,
+            "longitude": -80.4089,
+            "address": "1 Speedway Blvd"
+          },
+          "customer_name": "Homestead Speedway",
+          "customer_phone": "(305) 555-0132",
+          "arrival_time": "11:12",
+          "departure_time": "11:22",
+          "cumulative_distance": 64.2,
+          "cumulative_load": 77.0,
+          "directions": "Head south, then west for 3.8 miles"
+        },
+        {
+          "sequence": 8,
+          "delivery_id": "d33",
+          "location": {
+            "latitude": 25.6938,
+            "longitude": -80.1628,
+            "address": "1200 Crandon Blvd"
+          },
+          "customer_name": "Key Biscayne Beach",
+          "customer_phone": "(305) 555-0133",
+          "arrival_time": "12:16",
+          "departure_time": "12:21",
+          "cumulative_distance": 100.68,
+          "cumulative_load": 84.0,
+          "directions": "Head east, then north for 22.7 miles"
+        },
+        {
+          "sequence": 9,
+          "delivery_id": "d24",
+          "location": {
+            "latitude": 25.7903,
+            "longitude": -80.1396,
+            "address": "900 Lincoln Rd"
+          },
+          "customer_name": "Lincoln Road Mall",
+          "customer_phone": "(305) 555-0124",
+          "arrival_time": "12:37",
+          "departure_time": "12:42",
+          "cumulative_distance": 111.66,
+          "cumulative_load": 95.0,
+          "directions": "Head north, then east for 6.8 miles"
+        }
+      ],
+      "total_distance": 125.11,
+      "total_time": 302,
+      "total_load": 95.0,
+      "utilization": 95.0
+    },
+    {
+      "vehicle_id": "vehicle_5",
+      "vehicle_name": "Vehicle 5",
+      "stops": [
+        {
+          "sequence": 1,
+          "delivery_id": "d22",
+          "location": {
+            "latitude": 25.7907,
+            "longitude": -80.13,
+            "address": "1111 Collins Ave"
+          },
+          "customer_name": "Miami Beach Collins",
+          "customer_phone": "(305) 555-0122",
+          "arrival_time": "08:21",
+          "departure_time": "08:26",
+          "cumulative_distance": 14.29,
+          "cumulative_load": 10.0,
+          "directions": "Head east, then north for 8.9 miles"
+        }
+      ],
+      "total_distance": 28.58,
+      "total_time": 47,
+      "total_load": 10.0,
+      "utilization": 10.0
+    }
+  ]
+}
