@@ -6,7 +6,7 @@ import csv
 import io
 from typing import Optional
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from models import (
     Delivery,
@@ -149,6 +149,8 @@ async def optimize_routes(
     - objective: minimize_distance, minimize_time, or balance_routes
     - max_computation_time: Maximum seconds to spend optimizing
     """
+    import asyncio
+
     if not request.deliveries:
         raise HTTPException(status_code=400, detail="At least one delivery is required")
 
@@ -156,9 +158,29 @@ async def optimize_routes(
         raise HTTPException(status_code=400, detail="At least one vehicle is required")
 
     try:
-        result = service.optimize(request)
-        return result
+        # Run the blocking optimization in a thread pool to avoid blocking the event loop
+        print(f"[Optimize] Starting optimization in thread pool...")
+        result = await asyncio.to_thread(service.optimize, request)
+        print(f"[Optimize] Got result with {len(result.routes)} routes")
+
+        # Serialize to JSON and return directly as JSONResponse
+        # This bypasses FastAPI's response_model validation which may have issues
+        try:
+            result_dict = result.model_dump(mode='json')
+            print(f"[Optimize] Serialization OK, returning JSONResponse...")
+            return JSONResponse(content=result_dict)
+        except Exception as serialize_err:
+            import traceback
+            print(f"[Optimize] SERIALIZATION ERROR: {str(serialize_err)}")
+            print(f"[Optimize] Traceback: {traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Response serialization failed: {str(serialize_err)}")
+
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
+        import traceback
+        print(f"[Optimize] ERROR: {str(e)}")
+        print(f"[Optimize] Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Optimization failed: {str(e)}")
 
 

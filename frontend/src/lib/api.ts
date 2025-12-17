@@ -1,4 +1,6 @@
 const API_BASE = '/api';
+// Direct backend URL for long-running requests (bypasses Next.js proxy timeout)
+const BACKEND_DIRECT = 'http://localhost:8001/api';
 
 export interface Location {
   latitude: number;
@@ -175,7 +177,9 @@ export async function uploadDeliveries(file: File): Promise<UploadResponse> {
 }
 
 export async function optimizeRoutes(request: OptimizationRequest): Promise<OptimizationResult> {
-  const response = await fetch(`${API_BASE}/optimize`, {
+  console.log('[API] Sending optimize request directly to backend...');
+  // Use direct backend URL to bypass Next.js proxy timeout (optimization can take 30+ seconds)
+  const response = await fetch(`${BACKEND_DIRECT}/optimize`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -183,12 +187,31 @@ export async function optimizeRoutes(request: OptimizationRequest): Promise<Opti
     body: JSON.stringify(request),
   });
 
+  console.log('[API] Response status:', response.status, response.statusText);
+
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.detail || 'Optimization failed');
+    const errorText = await response.text();
+    console.error('[API] Error response:', errorText);
+    try {
+      const error = JSON.parse(errorText);
+      throw new Error(error.detail || 'Optimization failed');
+    } catch {
+      throw new Error(errorText || 'Optimization failed');
+    }
   }
 
-  return response.json();
+  const text = await response.text();
+  console.log('[API] Response length:', text.length, 'bytes');
+
+  try {
+    const result = JSON.parse(text);
+    console.log('[API] Parsed result:', result.success, 'routes:', result.routes?.length);
+    return result;
+  } catch (e) {
+    console.error('[API] JSON parse error:', e);
+    console.error('[API] Raw response (first 500 chars):', text.substring(0, 500));
+    throw new Error('Failed to parse optimization response');
+  }
 }
 
 export async function getSampleData(): Promise<SampleData> {
